@@ -274,6 +274,7 @@ class SharingNFSService(SharingService):
         register=True,
     )
 
+    @private
     async def human_identifier(self, share_task):
         return ', '.join(share_task[self.path_field])
 

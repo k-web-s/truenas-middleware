@@ -1110,6 +1110,7 @@ class TDBWrapCRUDService(CRUDService):
         ha_mode = await self.middleware.call('smb.get_smb_ha_mode')
         return ha_mode == "CLUSTERED"
 
+    @private
     async def is_clustered(self):
         if self.is_clustered_fn is NotImplemented:
             return await self._default_cluster_check()
@@ -1628,7 +1629,12 @@ class CoreService(Service):
                         getattr(method, schema_type, None), args_descriptions_doc
                     )
 
-                data['{0}.{1}'.format(name, attr)] = {
+                method_name = f'{name}.{attr}'
+
+                if method_schemas['accepts'] is None:
+                    raise RuntimeError(f'Method {method_name} is public but has no @accepts()')
+
+                data[method_name] = {
                     'description': doc,
                     'cli_description': (doc or '').split('\n\n')[0].split('.')[0].replace('\n', ' '),
                     'examples': examples,
