@@ -19,20 +19,20 @@ from protocols import SMB
 from samba import ntstatus
 
 
-dataset = f"{pool_name}/smb-vss"
-dataset_url = dataset.replace('/', '%2F')
-dataset_nested = f"{dataset}/sub1"
-dataset_nested_url = dataset_nested.replace('/', '%2F')
+vs_dataset = f"{pool_name}/smb-vss"
+vs_dataset_url = dataset.replace('/', '%2F')
+vs_dataset_nested = f"{dataset}/sub1"
+vs_dataset_nested_url = dataset_nested.replace('/', '%2F')
 
-SMB_NAME = "SMBVSS"
-smb_path = "/mnt/" + dataset
+VSS_SMB_NAME = "SMBVSS"
+vss_smb_path = "/mnt/" + dataset
 
-SMB_USER = "smbshadowuser"
-SMB_PWD = "smb1234"
+VSS_SMB_USER = "smbshadowuser"
+VSS_SMB_PWD = "smb1234"
 
 to_check = [
     'testfile1',
-    f'{SMB_USER}/testfile2',
+    f'{VSS_SMB_USER}/testfile2',
     'sub1/testfile3'
 ]
 
@@ -46,8 +46,8 @@ snapshots = {
 def check_previous_version_exists(path, home=False):
     cmd = [
         'smbclient',
-        f'//{ip}/{SMB_NAME if not home else SMB_USER}',
-        '-U', f'{SMB_USER}%{SMB_PWD}',
+        f'//{ip}/{VSS_SMB_NAME if not home else VSS_SMB_USER}',
+        '-U', f'{VSS_SMB_USER}%{VSS_SMB_PWD}',
         '-c' f'open {path}'
     ]
     cli_open = run(cmd, capture_output=True)
@@ -75,8 +75,8 @@ def check_previous_version_exists(path, home=False):
 def check_previous_version_contents(path, contents, offset):
     cmd = [
         'smbclient',
-        f'//{ip}/{SMB_NAME}',
-        '-U', f'{SMB_USER}%{SMB_PWD}',
+        f'//{ip}/{VSS_SMB_NAME}',
+        '-U', f'{VSS_SMB_USER}%{VSS_SMB_PWD}',
         '-c' f'prompt OFF; mget {path}'
     ]
     cli_get = run(cmd, capture_output=True)
@@ -106,20 +106,24 @@ def check_previous_version_contents(path, contents, offset):
 """
 
 
-@pytest.mark.parametrize('ds', [dataset, dataset_nested])
+@pytest.mark.parametrize('theds', [vs_dataset, vs_dataset_nested])
 @pytest.mark.dependency(name="VSS_DATASET_CREATED")
 def test_001_creating_smb_dataset(request, ds):
     payload = {
-        "name": ds,
+        "name": theds,
         "share_type": "SMB"
     }
     results = POST("/pool/dataset/", payload)
     assert results.status_code == 200, results.text
     result = POST("/zfs/snapshot/", {
-        "dataset": ds,
+        "dataset": theds,
         "name": "init",
     })
     assert result.status_code == 200, results.text
+
+    result = GET(f"/zfs/snapshot/?id={ds}@init")
+    assert result.status_code == 200, results.text
+    assert len(result.json()) == 1
 
 
 @pytest.mark.dependency(name="VSS_USER_CREATED")
@@ -132,10 +136,10 @@ def test_002_creating_shareuser_to_test_acls(request):
     next_uid = results.json()
 
     payload = {
-        "username": SMB_USER,
+        "username": VSS_SMB_USER,
         "full_name": "SMB User",
         "group_create": True,
-        "password": SMB_PWD,
+        "password": VSS_SMB_PWD,
         "uid": next_uid,
     }
     results = POST("/user/", payload)
@@ -147,11 +151,11 @@ def test_002_creating_shareuser_to_test_acls(request):
 @pytest.mark.dependency(name="VSS_SHARE_CREATED")
 def test_003_creating_a_smb_share_path(request):
     depends(request, ["VSS_DATASET_CREATED"])
-    global payload, results, smb_id
+    global smb_id
     payload = {
         "comment": "SMB VSS Testing Share",
-        "path": smb_path,
-        "name": SMB_NAME,
+        "path": vss_smb_path,
+        "name": VSS_SMB_NAME,
         "purpose": "NO_PRESET",
         "auxsmbconf": "shadow:ignore_empty_snaps = no",
     }
@@ -159,7 +163,7 @@ def test_003_creating_a_smb_share_path(request):
     assert results.status_code == 200, results.text
     smb_id = results.json()['id']
 
-    cmd = f'mkdir {smb_path}/{SMB_USER}; zpool sync'
+    cmd = f'mkdir {vss_smb_path}/{VSS_SMB_USER}; zpool sync'
     results = SSH_TEST(cmd, user, password, ip)
     assert results['result'] is True, {"cmd": cmd, "res": results['output']}
 
@@ -177,6 +181,7 @@ def test_005_enable_smb1(request):
     depends(request, ["VSS_SHARE_CREATED"])
     payload = {
         "enable_smb1": True,
+        "guest": "nobody",
     }
     results = PUT("/smb/", payload)
     assert results.status_code == 200, results.text
@@ -193,9 +198,9 @@ def test_006_check_shadow_copies(request, proto):
     c = SMB()
     snaps = c.get_shadow_copies(
         host=ip,
-        share=SMB_NAME,
-        username=SMB_USER,
-        password=SMB_PWD,
+        share=VSS_SMB_NAME,
+        username=VSS_SMB_USER,
+        password=VSS_SMB_PWD,
         smb1=(proto == "SMB1")
     )
     assert len(snaps) == 1, snaps
