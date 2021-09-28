@@ -172,7 +172,7 @@ def test_003_creating_a_smb_share_path(request):
 def test_004_starting_cifs_service(request):
     depends(request, ["VSS_SHARE_CREATED"])
     payload = {"service": "cifs"}
-    results = POST("/service/start/", payload)
+    results = POST("/service/restart/", payload)
     assert results.status_code == 200, results.text
 
 
@@ -182,6 +182,7 @@ def test_005_enable_smb1(request):
     payload = {
         "enable_smb1": True,
         "guest": "nobody",
+        "smb_options": "log level = 3 shadowzfs:10"
     }
     results = PUT("/smb/", payload)
     assert results.status_code == 200, results.text
@@ -195,6 +196,7 @@ def test_006_check_shadow_copies(request, proto):
     over SMB1 and SMB2/3.
     """
     depends(request, ["VSS_USER_CREATED"])
+    sleep(5)
     c = SMB()
     snaps = c.get_shadow_copies(
         host=ip,
