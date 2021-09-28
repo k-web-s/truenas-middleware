@@ -20,12 +20,12 @@ from samba import ntstatus
 
 
 vs_dataset = f"{pool_name}/smb-vss"
-vs_dataset_url = dataset.replace('/', '%2F')
-vs_dataset_nested = f"{dataset}/sub1"
-vs_dataset_nested_url = dataset_nested.replace('/', '%2F')
+vs_dataset_url = vs_dataset.replace('/', '%2F')
+vs_dataset_nested = f"{vs_dataset}/sub1"
+vs_dataset_nested_url = vs_dataset_nested.replace('/', '%2F')
 
 VSS_SMB_NAME = "SMBVSS"
-vss_smb_path = "/mnt/" + dataset
+vss_smb_path = "/mnt/" + vs_dataset
 
 VSS_SMB_USER = "smbshadowuser"
 VSS_SMB_PWD = "smb1234"
@@ -108,7 +108,7 @@ def check_previous_version_contents(path, contents, offset):
 
 @pytest.mark.parametrize('theds', [vs_dataset, vs_dataset_nested])
 @pytest.mark.dependency(name="VSS_DATASET_CREATED")
-def test_001_creating_smb_dataset(request, ds):
+def test_001_creating_smb_dataset(request, theds):
     payload = {
         "name": theds,
         "share_type": "SMB"
@@ -121,7 +121,7 @@ def test_001_creating_smb_dataset(request, ds):
     })
     assert result.status_code == 200, results.text
 
-    result = GET(f"/zfs/snapshot/?id={ds}@init")
+    result = GET(f"/zfs/snapshot/?id={theds}@init")
     assert result.status_code == 200, results.text
     assert len(result.json()) == 1
 
