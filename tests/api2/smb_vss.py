@@ -182,7 +182,7 @@ def test_005_enable_smb1(request):
     payload = {
         "enable_smb1": True,
         "guest": "nobody",
-        "smb_options": "log level = 3 shadowzfs:10"
+        "smb_options": "log level = 8 shadowzfs:10"
     }
     results = PUT("/smb/", payload)
     assert results.status_code == 200, results.text
