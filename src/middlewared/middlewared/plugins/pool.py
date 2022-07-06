@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import tempfile
 import uuid
+import copy
 
 from collections import defaultdict
 
@@ -2818,6 +2819,10 @@ class PoolDatasetService(CRUDService):
         # Optimization for cases in which they can be filtered at zfs.dataset.query
         zfsfilters = []
         filters = filters or []
+        extra = copy.deepcopy(options.get('extra', {}))
+        retrieve_children = extra.get('retrieve_children', True)
+        props = extra.get('properties')
+        snapshots = extra.get('snapshots')
         sys_config = self.middleware.call_sync('systemdataset.config')
         if sys_config['basename']:
             filters.extend([
@@ -2835,8 +2840,15 @@ class PoolDatasetService(CRUDService):
 
         return filter_list(
             self.__transform(self.middleware.call_sync(
-                'zfs.dataset.query', zfsfilters, {'extra': {'flat': options.get('extra', {}).get('flat', True)}})
-            ), filters, options
+                'zfs.dataset.query', zfsfilters, {
+                    'extra': {
+                        'flat': extra.get('flat', True),
+                        'retrieve_children': retrieve_children,
+                        'properties': props,
+                        'snapshots': snapshots,
+                    }
+                }
+            )), filters, options
         )
 
     def __transform(self, datasets):
