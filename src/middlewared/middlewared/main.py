@@ -782,6 +782,8 @@ class ShellApplication(object):
 
 
 class PreparedCall:
+    __slots__ = ('args', 'executor', 'job')
+
     def __init__(self, args=None, executor=None, job=None):
         self.args = args
         self.executor = executor
