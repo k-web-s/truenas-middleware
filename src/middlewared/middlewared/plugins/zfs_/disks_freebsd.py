@@ -8,7 +8,6 @@ class ZFSPoolService(Service, PoolDiskServiceBase):
     class Config:
         namespace = 'zfs.pool'
         private = True
-        process_pool = True
 
     def get_disks(self, name):
         try:
