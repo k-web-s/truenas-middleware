@@ -11,7 +11,6 @@ class ZFSPoolService(Service, PoolDiskServiceBase):
     class Config:
         namespace = 'zfs.pool'
         private = True
-        process_pool = True
 
     def get_disks(self, name):
         disks = self.middleware.call_sync('zfs.pool.get_devices', name)
