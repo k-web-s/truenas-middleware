@@ -70,7 +70,6 @@ class ZFSPoolService(CRUDService):
     class Config:
         namespace = 'zfs.pool'
         private = True
-        process_pool = True
 
     @filterable
     def query(self, filters, options):
@@ -389,7 +388,6 @@ class ZFSDatasetService(CRUDService):
     class Config:
         namespace = 'zfs.dataset'
         private = True
-        process_pool = True
 
     def locked_datasets(self):
         try:
@@ -913,7 +911,6 @@ class ZFSSnapshot(CRUDService):
     class Config:
         datastore_primary_key_type = 'string'
         namespace = 'zfs.snapshot'
-        process_pool = True
 
     @filterable
     def query(self, filters=None, options=None):
