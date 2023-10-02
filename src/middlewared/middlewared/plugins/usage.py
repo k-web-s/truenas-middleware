@@ -522,7 +522,7 @@ class UsageService(Service):
         return {'vms': vm_list}
 
 
-async def setup(middleware):
+async def _setup(middleware):
     now = datetime.utcnow()
     event_loop = middleware.loop
 
