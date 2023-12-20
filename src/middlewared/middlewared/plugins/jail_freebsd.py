@@ -347,7 +347,6 @@ class PluginService(CRUDService):
 
         return data
 
-    @periodic(interval=86400)
     async def retrieve_versions_for_repos(self):
         for repo in (await self.official_repositories()).values():
             await self.middleware.call('plugin.available', {'plugin_repository': repo['git_repository']})
@@ -505,7 +504,6 @@ class PluginService(CRUDService):
 
         return True
 
-    @periodic(interval=86400)
     @private
     def periodic_plugin_update(self):
         plugin_available = self.middleware.call_sync('plugin.available')
