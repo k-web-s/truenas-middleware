@@ -27,7 +27,7 @@ RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}ws4py>0:www/py-ws4py@${PY_FLAVOR} \
 		${PYTHON_PKGNAMEPREFIX}markdown>0:textproc/py-markdown@${PY_FLAVOR} \
 		${PYTHON_PKGNAMEPREFIX}mako>0:textproc/py-mako@${PY_FLAVOR} \
 		${PYTHON_PKGNAMEPREFIX}psutil>0:sysutils/py-psutil@${PY_FLAVOR} \
-		${PYTHON_PKGNAMEPREFIX}ldap>0:net/py-ldap@${PY_FLAVOR} \
+		${PYTHON_PKGNAMEPREFIX}ldap>0:net/py-python-ldap@${PY_FLAVOR} \
 		${PYTHON_PKGNAMEPREFIX}libzfs>0:devel/py-libzfs@${PY_FLAVOR} \
 		${PYTHON_PKGNAMEPREFIX}lockfile>0:devel/py-lockfile@${PY_FLAVOR} \
 		${PYTHON_PKGNAMEPREFIX}netsnmpagent>0:devel/py-netsnmpagent@${PY_FLAVOR} \
@@ -92,7 +92,7 @@ RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}ws4py>0:www/py-ws4py@${PY_FLAVOR} \
 		pyvmomi>0:net/py-pyvmomi \
 		samba>=0:net/samba \
 		swagger-ui>0:freenas/swagger-ui \
-		wireguard>0:net/wireguard
+		wireguard>0:net/wireguard-tools
 
 USE_RC_SUBR=	middlewared
 
