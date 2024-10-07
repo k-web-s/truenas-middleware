@@ -470,7 +470,7 @@ class Resource(object):
                         val = False
                 return val
 
-            if key in ('limit', 'offset', 'count'):
+            if key in ('limit', 'offset', 'count', 'force_sql_filters'):
                 options[key] = convert(val)
                 continue
             elif key == 'sort':
