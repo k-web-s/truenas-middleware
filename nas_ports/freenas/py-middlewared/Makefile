@@ -83,6 +83,8 @@ RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}ws4py>0:truenas/py-ws4py@${PY_FLAVOR} \
 		grub2-efi>0:sysutils/grub2-efi \
 		squashfs-tools>0:filesystems/squashfs-tools \
 		${PYTHON_PKGNAMEPREFIX}packaging>0:devel/py-packaging@${PY_FLAVOR} \
+		${PYTHON_PKGNAMEPREFIX}pyyaml>0:devel/py-pyyaml@${PY_FLAVOR} \
+		${PYTHON_PKGNAMEPREFIX}prometheus-client>0:net-mgmt/py-prometheus-client@${PY_FLAVOR} \
 		rclone>0:net/rclone \
 		ifstat>0:net/ifstat \
 		iftop>0:net-mgmt/iftop \

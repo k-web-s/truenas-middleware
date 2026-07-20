@@ -48,6 +48,19 @@ from middlewared.utils import start_daemon_thread
 import middlewared.utils.osc as osc
 from middlewared.utils.string import make_sentence
 
+if "PROMETHEUS_MULTIPROC_DIR" in os.environ:
+    from prometheus_client.multiprocess import mark_process_dead
+
+    def definition_set_metrics(definition):
+        definition["metrics"] = {"collect": True, "throughput": True}
+else:
+    def mark_process_dead(pid):
+        pass
+
+    def definition_set_metrics(definition):
+        pass
+
+
 INVALID_DATASETS = (
     re.compile(r"boot-pool($|/)"),
     re.compile(r"freenas-boot($|/)"),
@@ -290,6 +303,7 @@ class ZettareplService(Service):
                     self.logger.warning("Zettarepl was not joined in time, sending SIGKILL")
                     os.kill(self.process.pid, signal.SIGKILL)
 
+                mark_process_dead(self.process.pid)
                 self.process = None
 
     def update_config(self, config):
@@ -621,6 +635,8 @@ class ZettareplService(Service):
             "periodic-snapshot-tasks": periodic_snapshot_tasks,
             "replication-tasks": replication_tasks,
         }
+
+        definition_set_metrics(definition)
 
         # Test if does not cause exceptions
         Definition.from_data(definition, raise_on_error=False)

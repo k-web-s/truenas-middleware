@@ -1709,6 +1709,9 @@ def main():
     except Exception:
         pass
 
+    import middlewared.metrics
+    middlewared.metrics.setup()
+
     Middleware(
         loop_debug=args.loop_debug,
         loop_monitor=not args.disable_loop_monitor,
