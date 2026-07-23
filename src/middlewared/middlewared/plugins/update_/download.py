@@ -13,6 +13,7 @@ from .utils import scale_update_server
 
 
 class UpdateService(Service):
+    instance: 'UpdateService'
     @private
     def download_impl_scale(self, job, train, location, progress_proportion):
         job.set_progress(0, "Retrieving update manifest")

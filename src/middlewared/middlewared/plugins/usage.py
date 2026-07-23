@@ -11,6 +11,7 @@ from middlewared.service import Service
 
 
 class UsageService(Service):
+    instance: 'UsageService'
 
     FAILED_RETRIES = 3
 

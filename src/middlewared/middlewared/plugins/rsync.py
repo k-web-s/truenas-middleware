@@ -88,6 +88,7 @@ class RsyncdModel(sa.Model):
 
 
 class RsyncdService(SystemServiceService):
+    instance: 'RsyncdService'
 
     class Config:
         service = "rsync"
@@ -134,6 +135,7 @@ class RsyncModModel(sa.Model):
 
 
 class RsyncModService(SharingService):
+    instance: 'RsyncModService'
 
     share_task_type = 'Rsync Module'
 
@@ -285,6 +287,7 @@ class RsyncTaskModel(sa.Model):
 
 
 class RsyncTaskService(TaskPathService):
+    instance: 'RsyncTaskService'
 
     share_task_type = 'Rsync'
 

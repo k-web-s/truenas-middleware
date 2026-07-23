@@ -24,6 +24,7 @@ class KMIPModel(sa.Model):
 
 
 class KMIPService(ConfigService):
+    instance: 'KMIPService'
     class Config:
         datastore = 'system_kmip'
         datastore_extend = 'kmip.kmip_extend'

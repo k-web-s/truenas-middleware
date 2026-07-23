@@ -2,6 +2,7 @@ from middlewared.service import private, Service
 
 
 class PoolService(Service):
+    instance: 'PoolService'
 
     @private
     def find_disk_from_topology(self, label, pool, include_top_level_vdev=False):

@@ -5,6 +5,7 @@ from middlewared.utils.functools import cache
 
 
 class MseriesBiosService(Service):
+    instance: 'MseriesBiosService'
 
     class Config:
         private = True

@@ -326,6 +326,7 @@ async def _validate_common_attributes(middleware, data, verrors, schema_name):
 
 
 class CryptoKeyService(Service):
+    instance: 'CryptoKeyService'
 
     ec_curve_default = 'BrainpoolP384R1'
 
@@ -1119,6 +1120,7 @@ class CertificateModel(sa.Model):
 
 
 class CertificateService(CRUDService):
+    instance: 'CertificateService'
 
     class Config:
         datastore = 'system.certificate'
@@ -2353,6 +2355,7 @@ class CertificateAuthorityModel(sa.Model):
 
 
 class CertificateAuthorityService(CRUDService):
+    instance: 'CertificateAuthorityService'
 
     class Config:
         datastore = 'system.certificateauthority'

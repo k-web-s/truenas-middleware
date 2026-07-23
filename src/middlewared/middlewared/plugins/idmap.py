@@ -216,6 +216,7 @@ class IdmapDomainModel(sa.Model):
 
 
 class IdmapDomainService(CRUDService):
+    instance: 'IdmapDomainService'
     class Config:
         datastore = 'directoryservice.idmap_domain'
         datastore_prefix = 'idmap_domain_'

@@ -5,6 +5,7 @@ GCACHE = GeomCachedObjects()
 
 
 class GeomCache(Service):
+    instance: 'GeomCache'
 
     class Config:
         namespace = 'geom.cache'

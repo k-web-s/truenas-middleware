@@ -11,6 +11,7 @@ from .utils_linux import run_kw
 
 
 class UpdateService(Service):
+    instance: 'UpdateService'
     @private
     def create_upload_location(self):
         if not os.path.ismount(UPLOAD_LOCATION):

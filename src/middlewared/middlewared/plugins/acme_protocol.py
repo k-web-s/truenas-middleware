@@ -43,6 +43,7 @@ class ACMERegistrationBodyModel(sa.Model):
 
 
 class ACMERegistrationService(CRUDService):
+    instance: 'ACMERegistrationService'
 
     class Config:
         datastore = 'system.acmeregistration'
@@ -208,6 +209,7 @@ class ACMEDNSAuthenticatorModel(sa.Model):
 
 
 class DNSAuthenticatorService(CRUDService):
+    instance: 'DNSAuthenticatorService'
 
     class Config:
         namespace = 'acme.dns.authenticator'

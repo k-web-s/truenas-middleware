@@ -20,6 +20,7 @@ class TFTPModel(sa.Model):
 
 
 class TFTPService(SystemServiceService):
+    instance: 'TFTPService'
 
     class Config:
         service = "tftp"

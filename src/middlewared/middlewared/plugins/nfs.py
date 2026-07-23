@@ -36,6 +36,7 @@ class NFSModel(sa.Model):
 
 
 class NFSService(SystemServiceService):
+    instance: 'NFSService'
 
     class Config:
         service = "nfs"
@@ -245,6 +246,7 @@ class NFSShareModel(sa.Model):
 
 
 class SharingNFSService(SharingService):
+    instance: 'SharingNFSService'
 
     path_field = 'paths'
     share_task_type = 'NFS'

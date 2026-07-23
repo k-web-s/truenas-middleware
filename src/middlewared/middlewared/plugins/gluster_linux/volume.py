@@ -10,6 +10,7 @@ from .utils import GLUSTER_JOB_LOCK
 
 
 class GlusterVolumeService(CRUDService):
+    instance: 'GlusterVolumeService'
 
     class Config:
         datastore_primary_key_type = 'string'

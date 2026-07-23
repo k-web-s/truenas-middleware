@@ -92,6 +92,7 @@ class SystemAdvancedModel(sa.Model):
 
 
 class SystemAdvancedService(ConfigService):
+    instance: 'SystemAdvancedService'
 
     class Config:
         datastore = 'system.advanced'
@@ -373,6 +374,7 @@ class SystemAdvancedService(ConfigService):
 
 
 class SystemService(Service):
+    instance: 'SystemService'
 
     CPU_INFO = {
         'cpu_model': None,
@@ -821,6 +823,7 @@ class SystemGeneralModel(sa.Model):
 
 
 class SystemGeneralService(ConfigService):
+    instance: 'SystemGeneralService'
     HTTPS_PROTOCOLS = ['TLSv1', 'TLSv1.1', 'TLSv1.2', 'TLSv1.3']
 
     class Config:

@@ -23,6 +23,7 @@ class SystemDatasetModel(sa.Model):
 
 
 class SystemDatasetService(ConfigService):
+    instance: 'SystemDatasetService'
 
     class Config:
         datastore = 'system.systemdataset'

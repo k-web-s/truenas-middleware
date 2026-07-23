@@ -3,6 +3,7 @@ from middlewared.service import item_method, Service
 
 
 class ReplicationService(Service):
+    instance: 'ReplicationService'
 
     @item_method
     @accepts(

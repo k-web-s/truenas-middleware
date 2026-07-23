@@ -6,6 +6,7 @@ from .schema import SchemaMixin
 
 
 class DatastoreService(Service, SchemaMixin):
+    instance: 'DatastoreService'
 
     class Config:
         private = True

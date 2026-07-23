@@ -5,6 +5,7 @@ from .encryption_base import DiskEncryptionBase
 
 
 class DiskService(Service, DiskEncryptionBase):
+    instance: 'DiskService'
     def decrypt(self, job, devices, passphrase=None):
         raise NotImplementedError()
 

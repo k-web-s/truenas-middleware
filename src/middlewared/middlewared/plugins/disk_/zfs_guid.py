@@ -5,6 +5,7 @@ from middlewared.service_exception import MatchNotFound
 
 
 class DiskService(Service):
+    instance: 'DiskService'
     @private
     async def disk_by_zfs_guid(self, guid):
         try:

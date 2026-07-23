@@ -94,6 +94,7 @@ def parse_changelog(changelog, start='', end=''):
 
 
 class UpdateService(Service):
+    instance: 'UpdateService'
     @private
     def get_trains_data(self):
         try:

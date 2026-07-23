@@ -4,6 +4,7 @@ from .netif import netif
 
 
 class InterfaceService(Service):
+    instance: 'InterfaceService'
 
     class Config:
         namespace_alias = 'interfaces'
