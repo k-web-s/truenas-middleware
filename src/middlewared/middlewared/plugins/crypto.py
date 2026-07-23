@@ -17,6 +17,7 @@ from middlewared.async_validators import validate_country
 from middlewared.schema import accepts, Bool, Dict, Int, List, Patch, Ref, Str
 from middlewared.service import CallError, CRUDService, job, periodic, private, Service, skip_arg, ValidationErrors
 import middlewared.sqlalchemy as sa
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.validators import Email, IpAddress, Range
 from middlewared.utils import osc
 
@@ -216,8 +217,7 @@ def get_cert_info_from_data(data):
 
 
 async def validate_cert_name(middleware, cert_name, datastore, verrors, name):
-    certs = await middleware.call(
-        'datastore.query',
+    certs = await DatastoreService.instance.query(
         datastore,
         [('cert_name', '=', cert_name)]
     )
@@ -1306,8 +1306,7 @@ class CertificateService(CRUDService):
             # the cert_extend method
             # Datastore query is used instead of certificate.query to stop an infinite recursive loop
 
-            cert['signedby'] = await self.middleware.call(
-                'datastore.query',
+            cert['signedby'] = await DatastoreService.instance.query(
                 'system.certificateauthority',
                 [('id', '=', cert['signedby']['id'])],
                 {
@@ -1345,8 +1344,7 @@ class CertificateService(CRUDService):
         if cert['cert_type'] == 'CA':
             # TODO: Should we look for intermediate ca's as well which this ca has signed ?
             cert['signed_certificates'] = len((
-                await self.middleware.call(
-                    'datastore.query',
+                await DatastoreService.instance.query(
                     'system.certificate',
                     [['signedby', '=', cert['id']]],
                     {'prefix': 'cert_'}
@@ -2462,8 +2460,7 @@ class CertificateAuthorityService(CRUDService):
         certs = list(
             map(
                 lambda item: dict(item, cert_type='CERTIFICATE'),
-                await self.middleware.call(
-                    'datastore.query',
+                await DatastoreService.instance.query(
                     'system.certificate',
                     [['signedby', '=', ca_id]],
                     {'prefix': self._config.datastore_prefix}
@@ -2471,16 +2468,14 @@ class CertificateAuthorityService(CRUDService):
             )
         )
 
-        for ca in await self.middleware.call(
-            'datastore.query',
+        for ca in await DatastoreService.instance.query(
             'system.certificateauthority',
             [['signedby', '=', ca_id]],
             {'prefix': self._config.datastore_prefix}
         ):
             certs.extend((await self.get_ca_chain(ca['id'])))
 
-        ca = await self.middleware.call(
-            'datastore.query',
+        ca = await DatastoreService.instance.query(
             'system.certificateauthority',
             [['id', '=', ca_id]],
             {'prefix': self._config.datastore_prefix, 'get': True}
@@ -2533,8 +2528,7 @@ class CertificateAuthorityService(CRUDService):
             async def cert_serials(ca_id):
                 return [
                     data['serial'] for data in
-                    await self.middleware.call(
-                        'datastore.query',
+                    await DatastoreService.instance.query(
                         'system.certificate',
                         [('signedby', '=', ca_id)],
                         {
@@ -2548,8 +2542,7 @@ class CertificateAuthorityService(CRUDService):
 
             async def child_serials(ca_id):
                 serials = []
-                children = await self.middleware.call(
-                    'datastore.query',
+                children = await DatastoreService.instance.query(
                     self._config.datastore,
                     [('signedby', '=', ca_id)],
                     {

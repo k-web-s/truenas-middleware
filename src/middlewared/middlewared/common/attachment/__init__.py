@@ -1,3 +1,4 @@
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.service import ServiceChangeMixin
 from middlewared.utils.path import is_child
 
@@ -114,7 +115,7 @@ class LockableFSAttachmentDelegate(FSAttachmentDelegate):
 
     async def delete(self, attachments):
         for attachment in attachments:
-            await self.middleware.call('datastore.delete', self.datastore_model, attachment['id'])
+            await DatastoreService.instance.delete(self.datastore_model, attachment['id'])
             await self.remove_alert(attachment)
         if attachments:
             await self.restart_reload_services(attachments)

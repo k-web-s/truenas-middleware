@@ -15,6 +15,7 @@ from middlewared.service import CRUDService, private
 import middlewared.sqlalchemy as sa
 from middlewared.utils import run
 from middlewared.validators import validate_attributes, URL
+from middlewared.plugins.datastore.connection import DatastoreService
 
 
 class KeychainCredentialType:
@@ -96,7 +97,7 @@ class SFTPCloudSyncCredentialsSSHKeyPairUsedByDelegate(KeychainCredentialUsedByD
 
     async def unbind(self, row):
         row["attributes"].pop("private_key")
-        await self.middleware.call("datastore.update", "system.cloudcredentials", row["id"], {
+        await DatastoreService.instance.update("system.cloudcredentials", row["id"], {
             "attributes": row["attributes"]
         })
 
@@ -177,7 +178,7 @@ class ReplicationTaskSSHCredentialsUsedByDelegate(KeychainCredentialUsedByDelega
 
     async def unbind(self, row):
         await self.middleware.call("replication.update", row["id"], {"enabled": False})
-        await self.middleware.call("datastore.update", "storage.replication", row["id"], {
+        await DatastoreService.instance.update("storage.replication", row["id"], {
             "repl_ssh_credentials": None,
         })
 
@@ -347,8 +348,7 @@ class KeychainCredentialService(CRUDService):
 
         await self._validate("keychain_credentials_update", new, id)
 
-        await self.middleware.call(
-            "datastore.update",
+        await DatastoreService.instance.update(
             self._config.datastore,
             id,
             new,

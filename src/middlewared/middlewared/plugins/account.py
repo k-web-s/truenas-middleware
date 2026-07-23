@@ -6,6 +6,7 @@ import middlewared.sqlalchemy as sa
 from middlewared.utils import run, filter_list
 from middlewared.utils.osc import IS_FREEBSD
 from middlewared.validators import Email
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.plugins.smb import SMBBuiltin
 
 import binascii
@@ -131,8 +132,8 @@ class UserService(CRUDService):
     @private
     async def user_extend_context(self, extra):
         memberships = {}
-        res = await self.middleware.call(
-            'datastore.query', 'account.bsdgroupmembership',
+        res = await DatastoreService.instance.query(
+            'account.bsdgroupmembership',
             [], {'prefix': 'bsdgrpmember_'}
         )
 
@@ -204,8 +205,8 @@ class UserService(CRUDService):
         if dssearch:
             return await self.middleware.call('dscache.query', 'USERS', filters, options)
 
-        result = await self.middleware.call(
-            'datastore.query', self._config.datastore, [], datastore_options
+        result = await DatastoreService.instance.query(
+            self._config.datastore, [], datastore_options
         )
         for entry in result:
             entry.update({'local': True, 'id_type_both': False})
@@ -356,13 +357,13 @@ class UserService(CRUDService):
             await self.__set_password(data)
             sshpubkey = data.pop('sshpubkey', None)  # datastore does not have sshpubkey
 
-            pk = await self.middleware.call('datastore.insert', 'account.bsdusers', data, {'prefix': 'bsdusr_'})
+            pk = await DatastoreService.instance.insert('account.bsdusers', data, {'prefix': 'bsdusr_'})
 
             await self.__set_groups(pk, groups)
 
         except Exception:
             if pk is not None:
-                await self.middleware.call('datastore.delete', 'account.bsdusers', pk)
+                await DatastoreService.instance.delete('account.bsdusers', pk)
             if new_homedir:
                 # Be as atomic as possible when creating the user if
                 # commands failed to execute cleanly.
@@ -417,7 +418,7 @@ class UserService(CRUDService):
         verrors = ValidationErrors()
 
         if 'group' in data:
-            group = await self.middleware.call('datastore.query', 'account.bsdgroups', [
+            group = await DatastoreService.instance.query( 'account.bsdgroups', [
                 ('id', '=', data['group'])
             ])
             if not group:
@@ -566,7 +567,7 @@ class UserService(CRUDService):
             await self.__set_groups(pk, groups)
 
         user = await self.user_compress(user)
-        await self.middleware.call('datastore.update', 'account.bsdusers', pk, user, {'prefix': 'bsdusr_'})
+        await DatastoreService.instance.update('account.bsdusers', pk, user, {'prefix': 'bsdusr_'})
 
         await self.middleware.call('service.reload', 'user')
         if user['smb'] and must_change_pdb_entry:
@@ -609,12 +610,12 @@ class UserService(CRUDService):
             raise CallError('Cannot delete a built-in user', errno.EINVAL)
 
         if options['delete_group'] and not user['group']['bsdgrp_builtin']:
-            count = await self.middleware.call(
-                'datastore.query', 'account.bsdgroupmembership',
+            count = await DatastoreService.instance.query(
+                'account.bsdgroupmembership',
                 [('group', '=', user['group']['id'])], {'prefix': 'bsdgrpmember_', 'count': True}
             )
-            count2 = await self.middleware.call(
-                'datastore.query', 'account.bsdusers',
+            count2 = await DatastoreService.instance.query(
+                'account.bsdusers',
                 [('group', '=', user['group']['id']), ('id', '!=', pk)], {'prefix': 'bsdusr_', 'count': True}
             )
             if count == 0 and count2 == 0:
@@ -627,15 +628,13 @@ class UserService(CRUDService):
             await run('smbpasswd', '-x', user['username'], check=False)
 
         # TODO: add a hook in CIFS service
-        cifs = await self.middleware.call('datastore.query', 'services.cifs', [], {'prefix': 'cifs_srv_'})
+        cifs = await DatastoreService.instance.query( 'services.cifs', [], {'prefix': 'cifs_srv_'})
         if cifs:
             cifs = cifs[0]
             if cifs['guest'] == user['username']:
-                await self.middleware.call(
-                    'datastore.update', 'services.cifs', cifs['id'], {'guest': 'nobody'}, {'prefix': 'cifs_srv_'}
-                )
+                await DatastoreService.instance.update('services.cifs', cifs['id'], {'guest': 'nobody'}, {'prefix': 'cifs_srv_'})
 
-        await self.middleware.call('datastore.delete', 'account.bsdusers', pk)
+        await DatastoreService.instance.delete('account.bsdusers', pk)
         await self.middleware.call('service.reload', 'user')
 
         return pk
@@ -684,13 +683,7 @@ class UserService(CRUDService):
 
         user['attributes'][key] = value
 
-        await self.middleware.call(
-            'datastore.update',
-            'account.bsdusers',
-            pk,
-            {'attributes': user['attributes']},
-            {'prefix': 'bsdusr_'}
-        )
+        await DatastoreService.instance.update('account.bsdusers', pk, {'attributes': user['attributes']}, {'prefix': 'bsdusr_'})
 
         return True
 
@@ -708,13 +701,7 @@ class UserService(CRUDService):
         if key in user['attributes']:
             user['attributes'].pop(key)
 
-            await self.middleware.call(
-                'datastore.update',
-                'account.bsdusers',
-                pk,
-                {'attributes': user['attributes']},
-                {'prefix': 'bsdusr_'}
-            )
+            await DatastoreService.instance.update('account.bsdusers', pk, {'attributes': user['attributes']}, {'prefix': 'bsdusr_'})
             return True
         else:
             return False
@@ -725,8 +712,8 @@ class UserService(CRUDService):
         Get the next available/free uid.
         """
         last_uid = 999
-        builtins = await self.middleware.call(
-            'datastore.query', 'account.bsdusers',
+        builtins = await DatastoreService.instance.query(
+            'account.bsdusers',
             [('builtin', '=', False)], {'order_by': ['uid'], 'prefix': 'bsdusr_'}
         )
         for i in builtins:
@@ -749,8 +736,8 @@ class UserService(CRUDService):
         This is used when the system is installed without a password and must be set on
         first use/login.
         """
-        return (await self.middleware.call(
-            'datastore.query', 'account.bsdusers', [('bsdusr_username', '=', 'root')], {'get': True}
+        return (await DatastoreService.instance.query(
+            'account.bsdusers', [('bsdusr_username', '=', 'root')], {'get': True}
         ))['bsdusr_unixhash'] != '*'
 
     @no_auth_required
@@ -814,7 +801,7 @@ class UserService(CRUDService):
         if 'username' in data:
             pw_checkname(verrors, f'{schema}.username', data['username'])
 
-            if await self.middleware.call('datastore.query', 'account.bsdusers', [
+            if await DatastoreService.instance.query( 'account.bsdusers', [
                 ('username', '=', data['username'])
             ] + exclude_filter, {'prefix': 'bsdusr_'}):
                 verrors.add(
@@ -823,7 +810,7 @@ class UserService(CRUDService):
                     errno.EEXIST
                 )
             if data.get('smb'):
-                smb_users = await self.middleware.call('datastore.query',
+                smb_users = await DatastoreService.instance.query(
                                                        'account.bsdusers',
                                                        [('smb', '=', True)] + exclude_filter,
                                                        {'prefix': 'bsdusr_'})
@@ -954,28 +941,23 @@ class UserService(CRUDService):
 
         groups = set(groups)
         existing_ids = set()
-        gms = await self.middleware.call(
-            'datastore.query', 'account.bsdgroupmembership',
+        gms = await DatastoreService.instance.query(
+            'account.bsdgroupmembership',
             [('user', '=', pk)], {'prefix': 'bsdgrpmember_'}
         )
         for gm in gms:
             if gm['id'] not in groups:
-                await self.middleware.call('datastore.delete', 'account.bsdgroupmembership', gm['id'])
+                await DatastoreService.instance.delete('account.bsdgroupmembership', gm['id'])
             else:
                 existing_ids.add(gm['id'])
 
         for _id in groups - existing_ids:
-            group = await self.middleware.call(
-                'datastore.query', 'account.bsdgroups', [('id', '=', _id)], {'prefix': 'bsdgrp_'}
+            group = await DatastoreService.instance.query(
+                'account.bsdgroups', [('id', '=', _id)], {'prefix': 'bsdgrp_'}
             )
             if not group:
                 raise CallError(f'Group {_id} not found', errno.ENOENT)
-            await self.middleware.call(
-                'datastore.insert',
-                'account.bsdgroupmembership',
-                {'group': _id, 'user': pk},
-                {'prefix': 'bsdgrpmember_'}
-            )
+            await DatastoreService.instance.insert('account.bsdgroupmembership', {'group': _id, 'user': pk}, {'prefix': 'bsdgrpmember_'})
 
     @private
     async def update_sshpubkey(self, homedir, user, group):
@@ -1068,8 +1050,8 @@ class GroupService(CRUDService):
     @private
     async def group_extend_context(self, extra):
         mem = {}
-        membership = await self.middleware.call('datastore.query', 'account.bsdgroupmembership', [], {'prefix': 'bsdgrpmember_'})
-        users = await self.middleware.call('datastore.query', 'account.bsdusers')
+        membership = await DatastoreService.instance.query( 'account.bsdgroupmembership', [], {'prefix': 'bsdgrpmember_'})
+        users = await DatastoreService.instance.query( 'account.bsdusers')
 
         # uid and gid variables here reference database ids rather than OS uid / gid
         for g in membership:
@@ -1131,8 +1113,8 @@ class GroupService(CRUDService):
         if dssearch:
             return await self.middleware.call('dscache.query', 'GROUPS', filters, options)
 
-        result = await self.middleware.call(
-            'datastore.query', self._config.datastore, [], datastore_options
+        result = await DatastoreService.instance.query(
+            self._config.datastore, [], datastore_options
         )
         for entry in result:
             entry.update({'local': True, 'id_type_both': False})
@@ -1182,12 +1164,10 @@ class GroupService(CRUDService):
         users = group.pop('users', [])
 
         group = await self.group_compress(group)
-        pk = await self.middleware.call('datastore.insert', 'account.bsdgroups', group, {'prefix': 'bsdgrp_'})
+        pk = await DatastoreService.instance.insert('account.bsdgroups', group, {'prefix': 'bsdgrp_'})
 
         for user in users:
-            await self.middleware.call(
-                'datastore.insert', 'account.bsdgroupmembership', {'bsdgrpmember_group': pk, 'bsdgrpmember_user': user}
-            )
+            await DatastoreService.instance.insert('account.bsdgroupmembership', {'bsdgrpmember_group': pk, 'bsdgrpmember_user': user})
 
         if reload_users:
             await self.middleware.call('service.reload', 'user')
@@ -1235,17 +1215,17 @@ class GroupService(CRUDService):
                 groupmap_changed = True
 
         group = await self.group_compress(group)
-        await self.middleware.call('datastore.update', 'account.bsdgroups', pk, group, {'prefix': 'bsdgrp_'})
+        await DatastoreService.instance.update('account.bsdgroups', pk, group, {'prefix': 'bsdgrp_'})
 
         if 'users' in data:
-            existing = {i['bsdgrpmember_user']['id']: i for i in await self.middleware.call('datastore.query', 'account.bsdgroupmembership', [('bsdgrpmember_group', '=', pk)])}
+            existing = {i['bsdgrpmember_user']['id']: i for i in await DatastoreService.instance.query( 'account.bsdgroupmembership', [('bsdgrpmember_group', '=', pk)])}
             to_remove = set(existing.keys()) - set(data['users'])
             for i in to_remove:
-                await self.middleware.call('datastore.delete', 'account.bsdgroupmembership', existing[i]['id'])
+                await DatastoreService.instance.delete('account.bsdgroupmembership', existing[i]['id'])
 
             to_add = set(data['users']) - set(existing.keys())
             for i in to_add:
-                await self.middleware.call('datastore.insert', 'account.bsdgroupmembership', {'bsdgrpmember_group': pk, 'bsdgrpmember_user': i})
+                await DatastoreService.instance.insert('account.bsdgroupmembership', {'bsdgrpmember_group': pk, 'bsdgrpmember_user': i})
 
         await self.middleware.call('service.reload', 'user')
 
@@ -1267,18 +1247,17 @@ class GroupService(CRUDService):
         if group['builtin']:
             raise CallError('A built-in group cannot be deleted.', errno.EACCES)
 
-        nogroup = await self.middleware.call('datastore.query', 'account.bsdgroups', [('group', '=', 'nogroup')],
+        nogroup = await DatastoreService.instance.query( 'account.bsdgroups', [('group', '=', 'nogroup')],
                                              {'prefix': 'bsdgrp_', 'get': True})
 
-        for i in await self.middleware.call('datastore.query', 'account.bsdusers', [('group', '=', group['id'])],
+        for i in await DatastoreService.instance.query( 'account.bsdusers', [('group', '=', group['id'])],
                                             {'prefix': 'bsdusr_'}):
             if options['delete_users']:
-                await self.middleware.call('datastore.delete', 'account.bsdusers', i['id'])
+                await DatastoreService.instance.delete('account.bsdusers', i['id'])
             else:
-                await self.middleware.call('datastore.update', 'account.bsdusers', i['id'], {'group': nogroup['id']},
-                                           {'prefix': 'bsdusr_'})
+                await DatastoreService.instance.update('account.bsdusers', i['id'], {'group': nogroup['id']}, {'prefix': 'bsdusr_'})
 
-        await self.middleware.call('datastore.delete', 'account.bsdgroups', pk)
+        await DatastoreService.instance.delete('account.bsdgroups', pk)
 
         if group['smb']:
             gm_job = await self.middleware.call('smb.synchronize_group_mappings')
@@ -1293,8 +1272,8 @@ class GroupService(CRUDService):
         Get the next available/free gid.
         """
         last_gid = 999
-        grps = await self.middleware.call(
-            'datastore.query', 'account.bsdgroups',
+        grps = await DatastoreService.instance.query(
+            'account.bsdgroups',
             [('builtin', '=', False)], {'order_by': ['gid'], 'prefix': 'bsdgrp_'}
         )
         for i in grps:
@@ -1334,7 +1313,7 @@ class GroupService(CRUDService):
                         errno.EEXIST,
                     )
 
-                smb_groups = await self.middleware.call('datastore.query',
+                smb_groups = await DatastoreService.instance.query(
                                                         'account.bsdgroups',
                                                         [('smb', '=', True)] + exclude_filter,
                                                         {'prefix': 'bsdgrp_'})
@@ -1348,8 +1327,8 @@ class GroupService(CRUDService):
                         errno.EEXIST,
                     )
 
-            existing = await self.middleware.call(
-                'datastore.query', 'account.bsdgroups',
+            existing = await DatastoreService.instance.query(
+                'account.bsdgroups',
                 [('group', '=', data['name'])] + exclude_filter, {'prefix': 'bsdgrp_'}
             )
             if existing:
@@ -1363,8 +1342,8 @@ class GroupService(CRUDService):
 
         allow_duplicate_gid = data.pop('allow_duplicate_gid', False)
         if data.get('gid') and not allow_duplicate_gid:
-            existing = await self.middleware.call(
-                'datastore.query', 'account.bsdgroups',
+            existing = await DatastoreService.instance.query(
+                'account.bsdgroups',
                 [('gid', '=', data['gid'])] + exclude_filter, {'prefix': 'bsdgrp_'}
             )
             if existing:
@@ -1375,7 +1354,7 @@ class GroupService(CRUDService):
                 )
 
         if 'users' in data:
-            existing = set([i['id'] for i in await self.middleware.call('datastore.query', 'account.bsdusers', [('id', 'in', data['users'])])])
+            existing = set([i['id'] for i in await DatastoreService.instance.query( 'account.bsdusers', [('id', 'in', data['users'])])])
             notfound = set(data['users']) - existing
             if notfound:
                 verrors.add(

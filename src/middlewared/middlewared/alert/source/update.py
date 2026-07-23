@@ -10,6 +10,7 @@ except ImportError:
     Update = PendingUpdates = None
 
 from middlewared.alert.base import AlertClass, AlertCategory, AlertLevel, Alert, FilePresenceAlertSource, ThreadedAlertSource
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.alert.schedule import IntervalSchedule
 
 UPDATE_APPLIED_SENTINEL = "/tmp/.updateapplied"
@@ -57,12 +58,12 @@ class HasUpdateAlertSource(ThreadedAlertSource):
 
     def check_sync(self):
         try:
-            self.middleware.call_sync("datastore.query", "system.update", [], {"get": True})
+            self.middleware.run_coroutine(DatastoreService.instance.query("system.update", [], {"get": True}))
         except IndexError:
-            self.middleware.call_sync("datastore.insert", "system.update", {
+            self.middleware.run_coroutine(DatastoreService.instance.insert("system.update", {
                 "upd_autocheck": True,
                 "upd_train": "",
-            })
+            }))
 
         path = self.middleware.call_sync("update.get_update_location")
         if not path:

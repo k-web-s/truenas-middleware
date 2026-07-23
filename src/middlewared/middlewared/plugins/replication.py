@@ -7,6 +7,7 @@ from middlewared.service import item_method, job, private, CallError, CRUDServic
 import middlewared.sqlalchemy as sa
 from middlewared.utils.path import is_child
 from middlewared.validators import Port, Range, ReplicationSnapshotNamingSchema, Unique
+from middlewared.plugins.datastore.connection import DatastoreService
 
 
 class ReplicationModel(sa.Model):
@@ -372,8 +373,7 @@ class ReplicationService(CRUDService):
         new.pop("state", None)
         new.pop("job", None)
 
-        await self.middleware.call(
-            "datastore.update",
+        await DatastoreService.instance.update(
             self._config.datastore,
             id,
             new,
@@ -406,11 +406,7 @@ class ReplicationService(CRUDService):
             }
         """
 
-        response = await self.middleware.call(
-            "datastore.delete",
-            self._config.datastore,
-            id
-        )
+        response = await DatastoreService.instance.delete(self._config.datastore, id)
 
         await self.middleware.call("zettarepl.update_tasks")
 
@@ -591,7 +587,7 @@ class ReplicationService(CRUDService):
         return verrors
 
     async def _set_periodic_snapshot_tasks(self, replication_task_id, periodic_snapshot_tasks_ids):
-        await self.middleware.call("datastore.delete", "storage.replication_repl_periodic_snapshot_tasks",
+        await DatastoreService.instance.delete("storage.replication_repl_periodic_snapshot_tasks",
                                    [["replication_id", "=", replication_task_id]])
         for periodic_snapshot_task_id in periodic_snapshot_tasks_ids:
             await self.middleware.call(
@@ -794,13 +790,13 @@ class ReplicationFSAttachmentDelegate(FSAttachmentDelegate):
 
     async def delete(self, attachments):
         for attachment in attachments:
-            await self.middleware.call('datastore.delete', 'storage.replication', attachment['id'])
+            await DatastoreService.instance.delete('storage.replication', attachment['id'])
 
         await self.middleware.call('zettarepl.update_tasks')
 
     async def toggle(self, attachments, enabled):
         for attachment in attachments:
-            await self.middleware.call('datastore.update', 'storage.replication', attachment['id'],
+            await DatastoreService.instance.update('storage.replication', attachment['id'],
                                        {'repl_enabled': enabled})
 
         await self.middleware.call('zettarepl.update_tasks')

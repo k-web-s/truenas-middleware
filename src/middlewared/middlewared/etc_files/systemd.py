@@ -1,5 +1,6 @@
 import re
 
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.service import CallError
 from middlewared.utils import run
 
@@ -9,7 +10,7 @@ RE_IS_NOT_A_NATIVE_SERVICE = re.compile(r"(.+)\.service is not a native service,
 async def render(service, middleware):
     services = []
     services_enabled = {}
-    for service in await middleware.call("datastore.query", "services.services", [], {"prefix": "srv_"}):
+    for service in await DatastoreService.instance.query("services.services", [], {"prefix": "srv_"}):
         object = await middleware.call("service.object", service["service"])
         if object.systemd_unit != NotImplemented:
             for unit in [object.systemd_unit] + object.systemd_extra_units:

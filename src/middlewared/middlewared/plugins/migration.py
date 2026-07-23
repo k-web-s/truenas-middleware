@@ -1,6 +1,7 @@
 import asyncio
 import os
 
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.service import Service
 import middlewared.sqlalchemy as sa
 from middlewared.utils import load_modules
@@ -33,7 +34,7 @@ class MigrationService(Service):
 
     async def run(self):
         if await self.middleware.call("keyvalue.get", "run_migration", False):
-            executed_migrations = {m["name"] for m in await self.middleware.call("datastore.query", "system.migration")}
+            executed_migrations = {m["name"] for m in await DatastoreService.instance.query("system.migration")}
 
             for module in load_migrations(self.middleware):
                 name = module.__name__
@@ -50,6 +51,6 @@ class MigrationService(Service):
                     self.middleware.logger.error("Error running migration %s", name, exc_info=True)
                     continue
 
-                await self.middleware.call("datastore.insert", "system.migration", {"name": name}, {"ha_sync": False})
+                await DatastoreService.instance.insert("system.migration", {"name": name}, {"ha_sync": False})
 
             await self.middleware.call("keyvalue.set", "run_migration", False, {"ha_sync": False})

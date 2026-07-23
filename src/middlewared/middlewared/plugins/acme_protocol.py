@@ -7,6 +7,7 @@ import time
 from middlewared.schema import Bool, Dict, Int, Str, ValidationErrors
 from middlewared.service import accepts, CallError, CRUDService, private
 import middlewared.sqlalchemy as sa
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.validators import validate_attributes
 
 from acme import client, messages
@@ -55,8 +56,8 @@ class ACMERegistrationService(CRUDService):
     async def register_extend(self, data):
         data['body'] = {
             key: value for key, value in
-            (await self.middleware.call(
-                'datastore.query', 'system.acmeregistrationbody',
+            (await DatastoreService.instance.query(
+                'system.acmeregistrationbody',
                 [['acme', '=', data['id']]], {'get': True}
             )).items() if key != 'acme'
         }

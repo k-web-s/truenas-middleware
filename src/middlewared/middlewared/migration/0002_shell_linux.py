@@ -2,12 +2,14 @@
 import logging
 import os
 
+from middlewared.plugins.datastore.connection import DatastoreService
+
 logger = logging.getLogger(__name__)
 
 
 def migrate(middleware):
     updated = False
-    for user in middleware.call_sync("datastore.query", "account.bsdusers", [], {"prefix": "bsdusr_"}):
+    for user in middleware.run_coroutine(DatastoreService.instance.query("account.bsdusers", [], {"prefix": "bsdusr_"})):
         if user["shell"].startswith("/usr/local/") and not os.path.exists(user["shell"]):
             new_shell = user["shell"].replace("/usr/local/", "/usr/")
             if os.path.exists(new_shell) and os.access(new_shell, os.X_OK):

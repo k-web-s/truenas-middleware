@@ -23,6 +23,7 @@ from collections import defaultdict
 
 import sysctl
 from middlewared.alert.base import AlertCategory, AlertClass, AlertLevel, SimpleOneShotAlertClass
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.plugins.disk_.overprovision_base import CanNotBeOverprovisionedException
 from middlewared.plugins.pool_.utils import get_dataset_parents
 from middlewared.plugins.zfs import ZFSSetPropertyError
@@ -473,9 +474,9 @@ class PoolService(CRUDService):
                 pool['is_decrypted'] = True
             else:
                 decrypted = True
-                for ed in self.middleware.call_sync(
-                    'datastore.query', 'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])]
-                ):
+                for ed in self.middleware.run_coroutine(DatastoreService.instance.query(
+                    'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])]
+                )):
                     if not os.path.exists(f'/dev/{ed["encrypted_provider"]}.eli'):
                         decrypted = False
                         break
@@ -706,10 +707,8 @@ class PoolService(CRUDService):
                 })
                 await self.middleware.call('zfs.dataset.mount', data['name'])
 
-                pool_id = await self.middleware.call(
-                    'datastore.insert', 'storage.volume',
-                    {'name': data['name'], 'guid': z_pool['guid']}, {'prefix': 'vol_'}
-                )
+                pool_id = await DatastoreService.instance.insert('storage.volume',
+                    {'name': data['name'], 'guid': z_pool['guid']}, {'prefix': 'vol_'})
 
                 encrypted_dataset_data = {
                     'name': data['name'], 'encryption_key': encryption_dict.get('key'),
@@ -719,9 +718,7 @@ class PoolService(CRUDService):
                     'pool.dataset.insert_or_update_encrypted_record', encrypted_dataset_data
                 )
 
-                await self.middleware.call(
-                    'datastore.insert', 'storage.scrub', {'volume': pool_id}, {'prefix': 'scrub_'}
-                )
+                await DatastoreService.instance.insert('storage.scrub', {'volume': pool_id}, {'prefix': 'scrub_'})
             except Exception as e:
                 # Something wrong happened, we need to rollback and destroy pool.
                 if z_pool:
@@ -730,7 +727,7 @@ class PoolService(CRUDService):
                     except Exception:
                         self.logger.warn('Failed to delete pool on pool.create rollback', exc_info=True)
                 if pool_id:
-                    await self.middleware.call('datastore.delete', 'storage.volume', pool_id)
+                    await DatastoreService.instance.delete('storage.volume', pool_id)
                 if encrypted_dataset_pk:
                     await self.middleware.call(
                         'pool.dataset.delete_encrypted_datasets_from_db', [['id', '=', encrypted_dataset_pk]]
@@ -1045,14 +1042,15 @@ class PoolService(CRUDService):
         if oid:
             filters.append(('id', '=', oid))
         cache = await self.middleware.call('disk.label_to_dev_disk_cache')
-        disks_in_db = await self.middleware.call('datastore.query', 'storage.disk', [], {'prefix': 'disk_'})
+        disks_in_db = await DatastoreService.instance.query('storage.disk', [], {'prefix': 'disk_'})
         for pool in await self.query(filters):
             if pool['is_decrypted'] and pool['status'] != 'OFFLINE':
                 for i in await self.middleware.call('zfs.pool.get_disks', pool['name']):
                     yield i
             else:
-                args = ('datastore.query', 'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])])
-                for prov in filter(lambda x: x['encrypted_provider'], (await self.middleware.call(*args))):
+                for prov in filter(lambda x: x['encrypted_provider'], (await DatastoreService.instance.query(
+                    'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])]
+                ))):
                     # Use encrypted_provider and not disk because a disk is not a guarantee
                     # to point to correct device if its locked and its not in the system
                     # (e.g. temporarily). See #50291
@@ -1449,7 +1447,7 @@ class PoolService(CRUDService):
         pool_name = data.get('name') or pool['name']
         pool_id = None
         try:
-            pool_id = await self.middleware.call('datastore.insert', 'storage.volume', {
+            pool_id = await DatastoreService.instance.insert('storage.volume', {
                 'vol_name': pool_name,
                 'vol_encrypt': encrypt,
                 'vol_guid': data['guid'],
@@ -1490,7 +1488,7 @@ class PoolService(CRUDService):
                 await self.middleware.call('pool.sync_encrypted', pool_id)
         except Exception:
             if pool_id:
-                await self.middleware.call('datastore.delete', 'storage.volume', pool_id)
+                await DatastoreService.instance.delete('storage.volume', pool_id)
             if passfile:
                 os.unlink(passfile)
             raise
@@ -1672,7 +1670,7 @@ class PoolService(CRUDService):
             except OSError as e:
                 self.logger.warn('Failed to remove mountpoint %s: %s', pool['path'], e)
 
-        await self.middleware.call('datastore.delete', 'storage.volume', oid)
+        await DatastoreService.instance.delete('storage.volume', oid)
         await self.middleware.call(
             'pool.dataset.delete_encrypted_datasets_from_db',
             [['OR', [['name', '=', pool['name']], ['name', '^', f'{pool["name"]}/']]]],
@@ -2066,8 +2064,8 @@ class PoolDatasetService(CRUDService):
             return
 
         ds_id = data.pop('id')
-        ds = await self.middleware.call(
-            'datastore.query', self.dataset_store,
+        ds = await DatastoreService.instance.query(
+            self.dataset_store,
             [['id', '=', ds_id]] if ds_id else [['name', '=', data['name']]]
         )
 
@@ -2081,11 +2079,7 @@ class PoolDatasetService(CRUDService):
                 ds[0]['id'], data
             )
         else:
-            pk = await self.middleware.call(
-                'datastore.insert',
-                self.dataset_store,
-                data
-            )
+            pk = await DatastoreService.instance.insert(self.dataset_store, data)
 
         kmip_config = await self.middleware.call('kmip.config')
         if kmip_config['enabled'] and kmip_config['manage_zfs_keys']:
@@ -2100,7 +2094,7 @@ class PoolDatasetService(CRUDService):
         # If we are unable to find the key in database, we see if we have it in memory with the KMIP server, if not,
         # there are 2 ways this can go, we don't retrieve the key or the user can sync KMIP keys and we will have it
         # with the KMIP service again through which we can retrieve them
-        datasets = filter_list(self.middleware.call_sync('datastore.query', self.dataset_store), filters)
+        datasets = filter_list(self.middleware.run_coroutine(DatastoreService.instance.query(self.dataset_store)), filters)
         zfs_keys = self.middleware.call_sync('kmip.retrieve_zfs_keys')
         keys = {}
         for ds in datasets:
@@ -2231,11 +2225,11 @@ class PoolDatasetService(CRUDService):
 
     @private
     async def delete_encrypted_datasets_from_db(self, filters):
-        datasets = await self.middleware.call('datastore.query', self.dataset_store, filters)
+        datasets = await DatastoreService.instance.query(self.dataset_store, filters)
         for ds in datasets:
             if ds['kmip_uid']:
                 self.middleware.create_task(self.middleware.call('kmip.reset_zfs_key', ds['name'], ds['kmip_uid']))
-            await self.middleware.call('datastore.delete', self.dataset_store, ds['id'])
+            await DatastoreService.instance.delete(self.dataset_store, ds['id'])
 
     @accepts(Str('id'))
     @job(lock='dataset_export_keys', pipes=['output'])
@@ -4099,8 +4093,7 @@ class PoolScrubService(CRUDService):
 
         pool_pk = data.get('pool')
         if pool_pk:
-            pool_obj = await self.middleware.call(
-                'datastore.query',
+            pool_obj = await DatastoreService.instance.query(
                 'storage.volume',
                 [('id', '=', pool_pk)]
             )
@@ -4180,12 +4173,7 @@ class PoolScrubService(CRUDService):
         data['volume'] = data.pop('pool')
         Cron.convert_schedule_to_db_format(data)
 
-        data['id'] = await self.middleware.call(
-            'datastore.insert',
-            self._config.datastore,
-            data,
-            {'prefix': self._config.datastore_prefix}
-        )
+        data['id'] = await DatastoreService.instance.insert(self._config.datastore, data, {'prefix': self._config.datastore_prefix})
 
         await self.middleware.call('service.restart', 'cron')
 
