@@ -3,6 +3,7 @@ import errno
 
 import psutil
 
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.plugins.service_.services.all import all_services
 from middlewared.plugins.service_.services.base import IdentifiableServiceInterface
 
@@ -33,7 +34,7 @@ class ServiceService(CRUDService):
             options = {}
         options['prefix'] = 'srv_'
 
-        services = await self.middleware.call('datastore.query', 'services.services', filters, options)
+        services = await DatastoreService.instance.query('services.services', filters, options)
 
         # In case a single service has been requested
         if not isinstance(services, list):
@@ -90,12 +91,12 @@ class ServiceService(CRUDService):
 
         """
         if not id_or_name.isdigit():
-            svc = await self.middleware.call('datastore.query', 'services.services', [('srv_service', '=', id_or_name)])
+            svc = await DatastoreService.instance.query('services.services', [('srv_service', '=', id_or_name)])
             if not svc:
                 raise CallError(f'Service {id_or_name} not found.', errno.ENOENT)
             id_or_name = svc[0]['id']
 
-        rv = await self.middleware.call('datastore.update', 'services.services', id_or_name, {'srv_enable': data['enable']})
+        rv = await DatastoreService.instance.update('services.services', id_or_name, {'srv_enable': data['enable']})
         await self.middleware.call('etc.generate', 'rc')
         return rv
 
@@ -342,7 +343,7 @@ async def __event_service_ready(middleware, event_type, args):
 
 
 async def setup(middleware):
-    for service in await middleware.call('datastore.query', 'services.services'):
+    for service in await DatastoreService.instance.query('services.services'):
         if service['srv_service'] == 's3':
             await middleware.call('datastore.delete', 'services.services', service['id'])
 

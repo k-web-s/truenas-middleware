@@ -1,3 +1,4 @@
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.service import private, Service
 
 
@@ -31,7 +32,7 @@ class InterfaceService(Service):
                     self.middleware.logger.warning(f"Exception while retrieving remote network interfaces: {e!r}")
 
             db_interfaces = DatabaseInterfaceCollection(
-                await self.middleware.call("datastore.query", "network.interfaces", [], {"prefix": "int_"}),
+                await DatastoreService.instance.query("network.interfaces", [], {"prefix": "int_"}),
             )
 
             # Update link addresses for interfaces in the database
@@ -42,8 +43,7 @@ class InterfaceService(Service):
                     self.__handle_update(real_interfaces_remote, db_interface, remote_key, update)
 
                 if update:
-                    await self.middleware.call("datastore.update", "network.interfaces", db_interface["id"],
-                                               update, {"prefix": "int_"})
+                    await DatastoreService.instance.update("network.interfaces", db_interface["id"], update, {"prefix": "int_"})
         except Exception:
             self.middleware.logger.error("Unhandled exception while persisting network interfaces link addresses",
                                          exc_info=True)

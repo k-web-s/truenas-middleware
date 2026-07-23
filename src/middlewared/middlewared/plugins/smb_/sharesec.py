@@ -2,6 +2,7 @@ from middlewared.schema import Bool, Dict, List, Str, Int
 from middlewared.service import (accepts, filterable, private, periodic, CRUDService)
 from middlewared.service_exception import CallError
 from middlewared.utils import run, filter_list
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.plugins.smb import SMBCmd
 
 import enum
@@ -208,15 +209,14 @@ class ShareSec(CRUDService):
             return
 
         config_share = await self.middleware.call('sharing.smb.query', [('name', '=', data['share_name'])], {'get': True})
-        await self.middleware.call('datastore.update', 'sharing.cifs_share', config_share['id'],
-                                   {'cifs_share_acl': ' '.join(ae_list)})
+        await DatastoreService.instance.update('sharing.cifs_share', config_share['id'], {'cifs_share_acl': ' '.join(ae_list)})
 
     async def _flush_share_info(self):
         """
         Write stored share acls to share_info.tdb. This should only be called
         if share_info.tdb contains default entries.
         """
-        shares = await self.middleware.call('datastore.query', 'sharing.cifs_share', [], {'prefix': 'cifs_'})
+        shares = await DatastoreService.instance.query('sharing.cifs_share', [], {'prefix': 'cifs_'})
         for share in shares:
             if share['share_acl']:
                 await self._sharesec(
@@ -280,7 +280,7 @@ class ShareSec(CRUDService):
         if write_share_info:
             return await self._flush_share_info()
 
-        shares = await self.middleware.call('datastore.query', 'sharing.cifs_share', [], {'prefix': 'cifs_'})
+        shares = await DatastoreService.instance.query('sharing.cifs_share', [], {'prefix': 'cifs_'})
         for s in shares:
             share_name = s['name'] if not s['home'] else 'homes'
             rc_info = filter_list(rc, [('share_name', '=', share_name)])
@@ -291,12 +291,7 @@ class ShareSec(CRUDService):
             rc_acl = ' '.join([(await self._ae_to_string(i)) for i in rc_info[0]['share_acl']])
             if rc_acl != s['share_acl']:
                 self.logger.debug('updating stored ACL on %s to %s', s['name'], rc_acl)
-                await self.middleware.call(
-                    'datastore.update',
-                    'sharing.cifs_share',
-                    s['id'],
-                    {'cifs_share_acl': rc_acl}
-                )
+                await DatastoreService.instance.update('sharing.cifs_share', s['id'], {'cifs_share_acl': rc_acl})
 
     @filterable
     async def query(self, filters=None, options=None):

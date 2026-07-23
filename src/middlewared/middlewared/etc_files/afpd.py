@@ -5,6 +5,7 @@ import textwrap
 from middlewared.client.utils import Struct
 from middlewared.utils import osc
 from middlewared.plugins.afp import AFPLogLevel
+from middlewared.plugins.datastore.connection import DatastoreService
 
 DEFAULT_CNID_DB_PATH = '/var/db/system/netatalk/CNID'
 APPLEDB_FILE = '.AppleDB'
@@ -68,7 +69,7 @@ def render(service, middleware):
         afp_config = f'/usr/local{afp_config}'
     cf_contents = []
 
-    afp = Struct(middleware.call_sync('datastore.query', 'services.afp', [], {'get': True}))
+    afp = Struct(middleware.run_coroutine(DatastoreService.instance.query('services.afp', [], {'get': True})))
 
     cf_contents.append("[Global]\n")
     uam_list = ['uams_dhx.so', 'uams_dhx2.so']
@@ -76,7 +77,7 @@ def render(service, middleware):
         uam_list.append('uams_guest.so')
         cf_contents.append('\tguest account = %s\n' % afp.afp_srv_guest_user)
     # uams_gss.so bails out with an error if kerberos isn't configured
-    if middleware.call_sync('datastore.query', 'directoryservice.kerberoskeytab', [], {'count': True}) > 0:
+    if middleware.run_coroutine(DatastoreService.instance.query('directoryservice.kerberoskeytab', [], {'count': True})) > 0:
         uam_list.append('uams_gss.so')
     cf_contents.append('\tuam list = %s\n' % (" ").join(uam_list))
 
@@ -170,7 +171,7 @@ def render(service, middleware):
         os.makedirs(db_path, mode=0o755, exist_ok=True)
         has_default_db_path = True
 
-    for share in middleware.call_sync('datastore.query', 'sharing.afp_share', [['afp_enabled', '=', True]]):
+    for share in middleware.run_coroutine(DatastoreService.instance.query('sharing.afp_share', [['afp_enabled', '=', True]])):
         share = Struct(share)
         if share.id in locked_shares:
             middleware.logger.debug('Skipping generation of %r afp share because it\'s locked', share.afp_name)

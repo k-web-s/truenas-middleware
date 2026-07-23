@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.service import accepts, private, Service
 from middlewared.service_exception import ValidationErrors
 from middlewared.schema import Bool
@@ -49,11 +50,11 @@ class DiskService(Service):
     async def __get_iscsi_targets(self):
         iscsi_target_extent_paths = [
             extent['iscsi_target_extent_path']
-            for extent in await self.middleware.call('datastore.query', 'services.iscsitargetextent',
-                                                     [('iscsi_target_extent_type', '=', 'Disk')])
+            for extent in await DatastoreService.instance.query('services.iscsitargetextent',
+                                                                 [('iscsi_target_extent_type', '=', 'Disk')])
         ]
-        for disk in await self.middleware.call('datastore.query', 'storage.disk',
-                                               [('disk_identifier', 'in', iscsi_target_extent_paths)]):
+        for disk in await DatastoreService.instance.query('storage.disk',
+                                                           [('disk_identifier', 'in', iscsi_target_extent_paths)]):
             yield disk['disk_name']
 
     @private

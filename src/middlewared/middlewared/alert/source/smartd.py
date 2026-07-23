@@ -1,6 +1,7 @@
 import subprocess
 
 from middlewared.alert.base import AlertClass, AlertCategory, AlertLevel, Alert, ThreadedAlertSource
+from middlewared.plugins.datastore.connection import DatastoreService
 
 
 class SmartdAlertClass(AlertClass):
@@ -12,8 +13,8 @@ class SmartdAlertClass(AlertClass):
 
 class SmartdAlertSource(ThreadedAlertSource):
     def check_sync(self):
-        if self.middleware.call_sync("datastore.query", "services.services", [("srv_service", "=", "smartd"),
-                                                                              ("srv_enable", "=", True)]):
+        if self.middleware.run_coroutine(DatastoreService.instance.query("services.services", [("srv_service", "=", "smartd"),
+                                                                              ("srv_enable", "=", True)])):
             # sysctl kern.vm_guest will return a hypervisor name, or the string "none"
             # if FreeNAS is running on bare iron.
             p0 = subprocess.Popen(["/sbin/sysctl", "-n", "kern.vm_guest"], stdin=subprocess.PIPE,

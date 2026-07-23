@@ -3,6 +3,7 @@ from middlewared.schema import Bool, Dict, IPAddr, List, Str, Int, Patch
 from middlewared.service import accepts, job, private, SharingService, SystemServiceService, ValidationErrors
 from middlewared.service_exception import CallError
 import middlewared.sqlalchemy as sa
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.utils import osc, Popen, run
 
 import codecs
@@ -872,8 +873,8 @@ class SharingSMBService(SharingService):
         verrors = ValidationErrors()
         path = data.get('path')
 
-        old = await self.middleware.call(
-            'datastore.query', self._config.datastore, [('id', '=', id)],
+        old = await DatastoreService.instance.query(
+            self._config.datastore, [('id', '=', id)],
             {'extend': self._config.datastore_extend,
              'prefix': self._config.datastore_prefix,
              'get': True})
@@ -907,9 +908,7 @@ class SharingSMBService(SharingService):
             new_is_locked = old_is_locked
 
         await self.compress(new)
-        await self.middleware.call(
-            'datastore.update', self._config.datastore, id, new,
-            {'prefix': self._config.datastore_prefix})
+        await DatastoreService.instance.update(self._config.datastore, id, new, {'prefix': self._config.datastore_prefix})
 
         await self.strip_comments(new)
         if not new_is_locked:
@@ -1001,7 +1000,7 @@ class SharingSMBService(SharingService):
         that are accessing the share.
         """
         share = await self._get_instance(id)
-        result = await self.middleware.call('datastore.delete', self._config.datastore, id)
+        result = await DatastoreService.instance.delete(self._config.datastore, id)
         await self.close_share(share['name'])
         try:
             await self.middleware.call('smb.sharesec._delete', share['name'] if not share['home'] else 'homes')
@@ -1027,8 +1026,7 @@ class SharingSMBService(SharingService):
         aapl_extensions = (await self.middleware.call('smb.config'))['aapl_extensions']
 
         if not aapl_extensions and data['timemachine']:
-            await self.middleware.call('datastore.update', 'services_cifs', 1,
-                                       {'cifs_srv_aapl_extensions': True})
+            await DatastoreService.instance.update('services_cifs', 1, {'cifs_srv_aapl_extensions': True})
             return True
 
         return False
@@ -1158,8 +1156,8 @@ class SharingSMBService(SharingService):
                 if not old['home']:
                     home_filters.append(('id', '!=', id))
                     # The user already had this set as the home share
-                    home_result = await self.middleware.call(
-                        'datastore.query', self._config.datastore,
+                    home_result = await DatastoreService.instance.query(
+                        self._config.datastore,
                         home_filters, {'prefix': self._config.datastore_prefix})
 
         return home_result
@@ -1199,8 +1197,8 @@ class SharingSMBService(SharingService):
         if id is not None:
             name_filters.append(('id', '!=', id))
 
-        name_result = await self.middleware.call(
-            'datastore.query', self._config.datastore,
+        name_result = await DatastoreService.instance.query(
+            self._config.datastore,
             name_filters,
             {'prefix': self._config.datastore_prefix})
 

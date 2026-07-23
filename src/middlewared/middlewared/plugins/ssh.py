@@ -7,6 +7,7 @@ from middlewared.schema import accepts, Bool, Dict, Int, List, Str, ValidationEr
 from middlewared.validators import Range
 from middlewared.service import private, SystemServiceService
 import middlewared.sqlalchemy as sa
+from middlewared.plugins.datastore.connection import DatastoreService
 
 
 class SSHModel(sa.Model):
@@ -128,7 +129,7 @@ class SSHService(SystemServiceService):
     @private
     def save_keys(self):
         update = {}
-        old = self.middleware.call_sync("datastore.query", "services_ssh", [], {"get": True})
+        old = self.middleware.run_coroutine(DatastoreService.instance.query("services_ssh", [], {"get": True}))
         keys = [(
             os.path.join("/usr/local/etc/ssh", i),
             i.replace(".", "_").replace("-", "_")
@@ -156,4 +157,4 @@ class SSHService(SystemServiceService):
                         update[column] = data
 
         if update:
-            self.middleware.call_sync("datastore.update", "services.ssh", old["id"], update, {"ha_sync": False})
+            self.middleware.run_coroutine(DatastoreService.instance.update("services.ssh", old["id"], update, {"ha_sync": False}))

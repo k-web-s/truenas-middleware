@@ -11,6 +11,7 @@ from middlewared.common.camcontrol import camcontrol_list
 from middlewared.schema import accepts, Bool, Dict, Int, Str
 from middlewared.service import filterable, private, CallError, CRUDService
 from middlewared.service_exception import ValidationErrors
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.utils import run
 from middlewared.utils.asyncio_ import asyncio_map
 
@@ -207,8 +208,8 @@ class DiskService(CRUDService):
         If temperature of a disk changes by `difference` degree Celsius since the last report, SMART reports this.
         """
 
-        old = await self.middleware.call(
-            'datastore.query', 'storage.disk', [['identifier', '=', id]], {
+        old = await DatastoreService.instance.query(
+            'storage.disk', [['identifier', '=', id]], {
                 'get': True, 'prefix': self._config.datastore_prefix
             }
         )
@@ -240,13 +241,7 @@ class DiskService(CRUDService):
 
         self._compress_enclosure(new)
 
-        await self.middleware.call(
-            'datastore.update',
-            self._config.datastore,
-            id,
-            new,
-            {'prefix': self._config.datastore_prefix}
-        )
+        await DatastoreService.instance.update(self._config.datastore, id, new, {'prefix': self._config.datastore_prefix})
 
         if any(new[key] != old[key] for key in ['hddstandby', 'advpowermgmt', 'acousticlevel']):
             await self.middleware.call('disk.power_management', new['name'])
@@ -610,7 +605,7 @@ class DiskService(CRUDService):
                     continue
                 _disks.append(p_geom.name)
 
-            qs = await self.middleware.call('datastore.query', 'storage.disk', [
+            qs = await DatastoreService.instance.query('storage.disk', [
                 ['OR', [
                     ['disk_name', 'in', _disks],
                     ['disk_multipath_member', 'in', _disks],
@@ -630,16 +625,16 @@ class DiskService(CRUDService):
                     update = True
                     diskobj['disk_multipath_member'] = _disks.pop()
                 if update:
-                    await self.middleware.call('datastore.update', 'storage.disk', diskobj['disk_identifier'], diskobj)
+                    await DatastoreService.instance.update('storage.disk', diskobj['disk_identifier'], diskobj)
 
         # Update all disks which were not identified as MULTIPATH, resetting attributes
         for disk in (
-            await self.middleware.call('datastore.query', 'storage.disk', [('disk_identifier', 'nin', mp_ids)])
+            await DatastoreService.instance.query('storage.disk', [('disk_identifier', 'nin', mp_ids)])
         ):
             if disk['disk_multipath_name'] or disk['disk_multipath_member']:
                 disk['disk_multipath_name'] = ''
                 disk['disk_multipath_member'] = ''
-                await self.middleware.call('datastore.update', 'storage.disk', disk['disk_identifier'], disk)
+                await DatastoreService.instance.update('storage.disk', disk['disk_identifier'], disk)
 
     @private
     async def configure_power_management(self):

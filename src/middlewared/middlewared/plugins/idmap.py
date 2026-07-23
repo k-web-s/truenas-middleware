@@ -9,6 +9,7 @@ from middlewared.plugins.directoryservices import SSL
 import middlewared.sqlalchemy as sa
 from middlewared.utils import run, filter_list
 from middlewared.validators import Range
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.plugins.smb import SMBCmd, WBCErr
 
 
@@ -762,7 +763,7 @@ class IdmapDomainService(CRUDService):
         if id <= 5:
             entry = await self._get_instance(id)
             raise CallError(f'Deleting system idmap domain [{entry["name"]}] is not permitted.', errno.EPERM)
-        await self.middleware.call("datastore.delete", self._config.datastore, id)
+        await DatastoreService.instance.delete(self._config.datastore, id)
 
     @private
     async def name_to_sid(self, name):

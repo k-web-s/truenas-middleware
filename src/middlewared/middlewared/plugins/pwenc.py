@@ -25,6 +25,8 @@ class PWEncService(Service):
         return PWENC_FILE_SECRET
 
     def generate_secret(self, reset_passwords=True):
+        from middlewared.plugins.datastore.connection import DatastoreService
+
         secret = os.urandom(PWENC_BLOCK_SIZE)
         with open(PWENC_FILE_SECRET, 'wb') as f:
             os.chmod(PWENC_FILE_SECRET, 0o600)
@@ -32,9 +34,9 @@ class PWEncService(Service):
         self.reset_secret_cache()
 
         settings = self.middleware.call_sync('datastore.config', 'system.settings')
-        self.middleware.call_sync('datastore.update', 'system.settings', settings['id'], {
+        self.middleware.run_coroutine(DatastoreService.instance.update('system.settings', settings['id'], {
             'stg_pwenc_check': self.encrypt(PWENC_CHECK),
-        })
+        }))
 
         if reset_passwords:
             for table, field in (
@@ -48,10 +50,12 @@ class PWEncService(Service):
                 self.middleware.call_sync('datastore.sql', f'UPDATE {table} SET {field} = \'\'')
 
     def check(self):
+        from middlewared.plugins.datastore.connection import DatastoreService
+
         try:
             settings = self.middleware.call_sync('datastore.config', 'system.settings')
         except IndexError:
-            self.middleware.call_sync('datastore.insert', 'system.settings', {})
+            self.middleware.run_coroutine(DatastoreService.instance.insert('system.settings', {}))
             settings = self.middleware.call_sync('datastore.config', 'system.settings')
 
         return self.decrypt(settings['stg_pwenc_check']) == PWENC_CHECK

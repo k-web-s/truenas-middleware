@@ -1,6 +1,9 @@
+from middlewared.plugins.datastore.connection import DatastoreService
+
+
 async def migrate(middleware):
-    servers = await middleware.call(
-        'datastore.query', 'system.ntpserver', [['ntp_address', 'in', [f'{i}.freebsd.pool.ntp.org' for i in range(3)]]]
+    servers = await DatastoreService.instance.query(
+        'system.ntpserver', [['ntp_address', 'in', [f'{i}.freebsd.pool.ntp.org' for i in range(3)]]]
     )
     for server in servers:
         await middleware.call(

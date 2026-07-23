@@ -1,4 +1,5 @@
 from middlewared.async_validators import check_path_resides_within_volume
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.common.attachment import FSAttachmentDelegate
 from middlewared.plugins.vm_.connection import LibvirtConnectionMixin
 from middlewared.schema import accepts, Error, Int, Str, Dict, List, Bool, Patch
@@ -1047,7 +1048,7 @@ class VMService(CRUDService, LibvirtConnectionMixin):
             list(dict): with all attributes of the vnc device or an empty list.
         """
         vnc_devices = []
-        for device in await self.middleware.call('datastore.query', 'vm.device', [('vm', '=', id)]):
+        for device in await DatastoreService.instance.query('vm.device', [('vm', '=', id)]):
             if device['dtype'] == 'VNC':
                 vnc = device['attributes']
                 vnc_devices.append(vnc)
@@ -1092,7 +1093,7 @@ class VMService(CRUDService, LibvirtConnectionMixin):
             list: will return a list with all attached phisycal interfaces or otherwise False.
         """
         ifaces = []
-        for device in await self.middleware.call('datastore.query', 'vm.device', [('vm', '=', id)]):
+        for device in await DatastoreService.instance.query('vm.device', [('vm', '=', id)]):
             if device['dtype'] == 'NIC':
                 if_attached = device['attributes'].get('nic_attach')
                 if if_attached:
@@ -1134,7 +1135,7 @@ class VMService(CRUDService, LibvirtConnectionMixin):
                 RPRD - Running and provisioned
         """
         memory_allocation = {'RNP': 0, 'PRD': 0, 'RPRD': 0}
-        guests = await self.middleware.call('datastore.query', 'vm.vm')
+        guests = await DatastoreService.instance.query('vm.vm')
         for guest in guests:
             status = await self.middleware.call('vm.status', guest['id'])
             if status['state'] == 'RUNNING' and guest['autostart'] is False:
@@ -1283,7 +1284,7 @@ class VMService(CRUDService, LibvirtConnectionMixin):
         verrors.check()
 
         devices = data.pop('devices')
-        vm_id = await self.middleware.call('datastore.insert', 'vm.vm', data)
+        vm_id = await DatastoreService.instance.insert('vm.vm', data)
         try:
             await self.safe_devices_updates(devices)
         except Exception as e:
@@ -1490,7 +1491,7 @@ class VMService(CRUDService, LibvirtConnectionMixin):
             await self.safe_devices_updates(devices)
             await self.__do_update_devices(id, devices)
 
-        await self.middleware.call('datastore.update', 'vm.vm', id, new)
+        await DatastoreService.instance.update('vm.vm', id, new)
 
         vm_data = await self.get_instance(id)
         if new['name'] != old['name']:
@@ -1545,7 +1546,7 @@ class VMService(CRUDService, LibvirtConnectionMixin):
             # We remove vm devices first
             for device in vm['devices']:
                 await self.middleware.call('vm.device.delete', device['id'])
-            result = await self.middleware.call('datastore.delete', 'vm.vm', id)
+            result = await DatastoreService.instance.delete('vm.vm', id)
             if not await self.middleware.call('vm.query'):
                 await self.middleware.call('vm.close_libvirt_connection')
                 self.vms = {}
@@ -1656,7 +1657,7 @@ class VMService(CRUDService, LibvirtConnectionMixin):
         if guest_status.get('state') != 'STOPPED':
             return
 
-        vm = await self.middleware.call('datastore.query', 'vm.vm', [('id', '=', id)])
+        vm = await DatastoreService.instance.query('vm.vm', [('id', '=', id)])
         guest_memory = vm[0].get('memory', 0) * 1024 * 1024
         arc_max = sysctl.filter('vfs.zfs.arc.max')[0].value
         arc_min = sysctl.filter('vfs.zfs.arc.min')[0].value
@@ -1682,7 +1683,7 @@ class VMService(CRUDService, LibvirtConnectionMixin):
             - state, RUNNING or STOPPED
             - pid, process id if RUNNING
         """
-        vm = self.middleware.call_sync('datastore.query', 'vm.vm', [['id', '=', id]], {'get': True})
+        vm = self.middleware.run_coroutine(DatastoreService.instance.query('vm.vm', [['id', '=', id]], {'get': True}))
 
         try:
             if not self._is_connection_alive():
@@ -1898,7 +1899,7 @@ class VMService(CRUDService, LibvirtConnectionMixin):
         # We use datastore.query specifically here to avoid a recursive case where vm.datastore_extend calls
         # status method which in turn needs a vm object to retrieve the libvirt status for the specified VM
         if LibvirtConnectionMixin.LIBVIRT_CONNECTION:
-            for vm_data in self.middleware.call_sync('datastore.query', 'vm.vm'):
+            for vm_data in self.middleware.run_coroutine(DatastoreService.instance.query('vm.vm')):
                 vm_data['devices'] = self.middleware.call_sync('vm.device.query', [['vm', '=', vm_data['id']]])
                 try:
                     self.vms[vm_data['name']] = VMSupervisor(vm_data, self.middleware)
@@ -2098,9 +2099,7 @@ class VMDeviceService(CRUDService):
         data = await self.validate_device(data)
         data = await self.update_device(data)
 
-        id = await self.middleware.call(
-            'datastore.insert', self._config.datastore, data
-        )
+        id = await DatastoreService.instance.insert(self._config.datastore, data)
         await self.__reorder_devices(id, data['vm'], data['order'])
 
         return await self.get_instance(id)
@@ -2123,7 +2122,7 @@ class VMDeviceService(CRUDService):
         new = await self.validate_device(new, device)
         new = await self.update_device(new, device)
 
-        await self.middleware.call('datastore.update', self._config.datastore, id, new)
+        await DatastoreService.instance.update(self._config.datastore, id, new)
         await self.__reorder_devices(id, device['vm'], new['order'])
 
         return await self.get_instance(id)
@@ -2160,7 +2159,7 @@ class VMDeviceService(CRUDService):
         Delete a VM device of `id`.
         """
         await self.delete_resource(options, await self.get_instance(id))
-        return await self.middleware.call('datastore.delete', self._config.datastore, id)
+        return await DatastoreService.instance.delete(self._config.datastore, id)
 
     async def __reorder_devices(self, id, vm_id, order):
         if order is None:
@@ -2184,9 +2183,7 @@ class VMDeviceService(CRUDService):
                 while device['order'] in used_order:
                     device['order'] += 1
                 used_order.append(device['order'])
-                await self.middleware.call(
-                    'datastore.update', self._config.datastore, device['id'], device
-                )
+                await DatastoreService.instance.update(self._config.datastore, device['id'], device)
 
     @private
     async def disk_uniqueness_integrity_check(self, device, vm):
@@ -2449,7 +2446,7 @@ class VMFSAttachmentDelegate(FSAttachmentDelegate):
                 'vm.query', [('status.state', '!=' if enabled else '=', 'RUNNING')]
             )
         }
-        for device in await self.middleware.call('datastore.query', 'vm.device'):
+        for device in await DatastoreService.instance.query('vm.device'):
             if (device['dtype'] not in ('DISK', 'RAW', 'CDROM')) or device['vm']['id'] in ignored_vms:
                 continue
 
