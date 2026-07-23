@@ -22,6 +22,7 @@ class ServiceModel(sa.Model):
 
 
 class ServiceService(CRUDService):
+    instance: 'ServiceService'
 
     @filterable
     async def query(self, filters=None, options=None):

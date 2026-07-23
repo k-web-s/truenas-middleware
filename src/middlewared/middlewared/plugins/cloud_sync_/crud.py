@@ -3,6 +3,7 @@ from middlewared.service import item_method, Service
 
 
 class CloudSyncService(Service):
+    instance: 'CloudSyncService'
 
     @item_method
     @accepts(

@@ -12,6 +12,7 @@ run_kw = dict(check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encodi
 
 
 class UpdateService(Service):
+    instance: 'UpdateService'
     @private
     def get_pending_in_path(self, path):
         if not os.path.exists(os.path.join(path, "update.sqsh")):

@@ -25,6 +25,7 @@ There are 2 possible cases which we need to handle for system.advanced
 
 
 class KMIPService(Service, KMIPServerMixin):
+    instance: 'KMIPService'
 
     def __init__(self, *args, **kwargs):
         """

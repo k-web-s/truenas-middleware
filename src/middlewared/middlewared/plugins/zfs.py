@@ -66,6 +66,7 @@ def find_vdev(pool, vname):
 
 
 class ZFSPoolService(CRUDService):
+    instance: 'ZFSPoolService'
 
     class Config:
         namespace = 'zfs.pool'
@@ -384,6 +385,7 @@ class ZFSPoolService(CRUDService):
 
 
 class ZFSDatasetService(CRUDService):
+    instance: 'ZFSDatasetService'
 
     class Config:
         namespace = 'zfs.dataset'
@@ -904,6 +906,7 @@ class ZFSDatasetService(CRUDService):
 
 
 class ZFSSnapshot(CRUDService):
+    instance: 'ZFSSnapshot'
 
     class Config:
         datastore_primary_key_type = 'string'

@@ -8,6 +8,7 @@ APEI = re.compile(r'.*APEI.*(Recoverable|Fatal).*')
 
 
 class HardwareService(Service):
+    instance: 'HardwareService'
 
     class Config:
         private = True

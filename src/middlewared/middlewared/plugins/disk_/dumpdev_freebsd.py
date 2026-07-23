@@ -5,6 +5,7 @@ from middlewared.utils import run
 
 
 class DiskService(Service):
+    instance: 'DiskService'
 
     @private
     async def dumpdev_configure(self, name):

@@ -56,6 +56,7 @@ class SupportModel(sa.Model):
 
 
 class SupportService(ConfigService):
+    instance: 'SupportService'
 
     class Config:
         datastore = 'system.support'

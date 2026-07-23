@@ -18,6 +18,7 @@ class NTPModel(sa.Model):
 
 
 class NTPServerService(CRUDService):
+    instance: 'NTPServerService'
     class Config:
         namespace = 'system.ntpserver'
         datastore = 'system.ntpserver'

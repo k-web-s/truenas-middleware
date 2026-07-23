@@ -29,6 +29,7 @@ after all the db operations are complete.
 
 
 class DatastoreService(Service, FilterMixin, SchemaMixin):
+    instance: 'DatastoreService'
 
     class Config:
         private = True

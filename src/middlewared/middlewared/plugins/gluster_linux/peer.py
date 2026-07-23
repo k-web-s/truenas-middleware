@@ -11,6 +11,7 @@ from .utils import GLUSTER_JOB_LOCK
 
 
 class GlusterPeerService(CRUDService):
+    instance: 'GlusterPeerService'
 
     class Config:
         namespace = 'gluster.peer'

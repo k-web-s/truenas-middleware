@@ -550,6 +550,7 @@ class CloudCredentialModel(sa.Model):
 
 
 class CredentialsService(CRUDService):
+    instance: 'CredentialsService'
 
     class Config:
         namespace = "cloudsync.credentials"
@@ -691,6 +692,7 @@ class CloudSyncModel(sa.Model):
 
 
 class CloudSyncService(TaskPathService):
+    instance: 'CloudSyncService'
 
     local_fs_lock_manager = FsLockManager()
     remote_fs_lock_manager = FsLockManager()

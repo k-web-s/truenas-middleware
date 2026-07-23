@@ -5,6 +5,7 @@ from middlewared.service import private, Service
 
 
 class DiskService(Service):
+    instance: 'DiskService'
 
     @private
     def nvme_to_nvd_map(self, ignore_boot_disks=False):

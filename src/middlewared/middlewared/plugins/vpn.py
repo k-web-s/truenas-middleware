@@ -227,6 +227,7 @@ class OpenVPNServerModel(sa.Model):
 
 
 class OpenVPNServerService(SystemServiceService):
+    instance: 'OpenVPNServerService'
 
     class Config:
         namespace = 'openvpn.server'
@@ -493,6 +494,7 @@ class OpenVPNClientModel(sa.Model):
 
 
 class OpenVPNClientService(SystemServiceService):
+    instance: 'OpenVPNClientService'
 
     class Config:
         namespace = 'openvpn.client'

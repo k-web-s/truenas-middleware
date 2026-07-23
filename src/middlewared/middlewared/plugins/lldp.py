@@ -13,6 +13,7 @@ class LLDPModel(sa.Model):
 
 
 class LLDPService(SystemServiceService):
+    instance: 'LLDPService'
     class Config:
         service = 'lldp'
         datastore_prefix = 'lldp_'

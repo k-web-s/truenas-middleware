@@ -26,6 +26,7 @@ class MigrationModel(sa.Model):
 
 
 class MigrationService(Service):
+    instance: 'MigrationService'
 
     class Config:
         private = True

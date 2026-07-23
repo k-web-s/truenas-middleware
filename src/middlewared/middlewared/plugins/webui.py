@@ -17,6 +17,7 @@ class ImageModel(sa.Model):
 
 
 class ImageService(CRUDService):
+    instance: 'ImageService'
     class Config:
         namespace = 'webui.image'
         datastore = 'system.filesystem'

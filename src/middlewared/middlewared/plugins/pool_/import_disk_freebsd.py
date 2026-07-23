@@ -101,6 +101,7 @@ class MountFsContextManager:
 
 
 class PoolService(Service, ImportDiskBase):
+    instance: 'PoolService'
 
     async def import_disk_kernel_module_context_manager(self, fs_type):
         return KernelModuleContextManager({

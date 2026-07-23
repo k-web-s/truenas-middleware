@@ -13,6 +13,7 @@ def read_file(path):
 
 
 class UserService(Service):
+    instance: 'UserService'
 
     @private
     def sync_builtin(self):

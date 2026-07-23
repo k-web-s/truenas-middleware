@@ -183,6 +183,7 @@ class AlertSerializer:
 
 
 class AlertService(Service):
+    instance: 'AlertService'
     def __init__(self, middleware):
         super().__init__(middleware)
 
@@ -865,6 +866,7 @@ class AlertServiceModel(sa.Model):
 
 
 class AlertServiceService(CRUDService):
+    instance: 'AlertServiceService'
     class Config:
         datastore = "system.alertservice"
         datastore_extend = "alertservice._extend"
@@ -1062,6 +1064,7 @@ class AlertClassesModel(sa.Model):
 
 
 class AlertClassesService(ConfigService):
+    instance: 'AlertClassesService'
     class Config:
         datastore = "system.alertclasses"
 

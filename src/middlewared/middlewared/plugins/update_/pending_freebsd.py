@@ -12,6 +12,7 @@ from middlewared.service import private, Service
 
 
 class UpdateService(Service):
+    instance: 'UpdateService'
     @private
     def get_pending_in_path(self, path):
         scale_flag = os.path.join(path, 'scale')

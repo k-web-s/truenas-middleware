@@ -23,6 +23,7 @@ class ReportingModel(sa.Model):
 
 
 class ReportingService(ConfigService):
+    instance: 'ReportingService'
 
     class Config:
         datastore = 'system.reporting'

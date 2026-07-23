@@ -8,6 +8,7 @@ from middlewared.utils.asyncio_ import asyncio_map
 
 
 class DiskService(Service):
+    instance: 'DiskService'
     smartctl_args_for_disk = {}
     smartctl_args_for_device_lock = asyncio.Lock()
 

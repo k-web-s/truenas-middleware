@@ -12,6 +12,7 @@ RE_DISKPART = re.compile(r'^([a-z]+\d+)(p\d+)?')
 
 
 class DiskService(Service, DiskInfoBase):
+    instance: 'DiskService'
 
     async def get_dev_size(self, dev):
         try:

@@ -7,6 +7,7 @@ from .connection import LibvirtConnectionMixin
 
 
 class VMService(Service, LibvirtConnectionMixin):
+    instance: 'VMService'
 
     @private
     def setup_libvirt_events(self):

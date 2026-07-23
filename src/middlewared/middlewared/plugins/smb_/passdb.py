@@ -9,6 +9,7 @@ import time
 
 
 class SMBService(Service):
+    instance: 'SMBService'
 
     class Config:
         service = 'cifs'

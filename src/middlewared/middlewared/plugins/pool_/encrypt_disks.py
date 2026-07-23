@@ -6,6 +6,7 @@ from middlewared.utils.asyncio_ import asyncio_map
 
 
 class PoolService(Service):
+    instance: 'PoolService'
 
     @private
     async def encrypt_disks(self, job, disks, options):

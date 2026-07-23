@@ -7,6 +7,7 @@ RE_SATA_DOM_LIFETIME = re.compile(r'^164\s+.*\s+([0-9]+)$', re.M)
 
 
 class DiskService(Service):
+    instance: 'DiskService'
     @accepts(Str('name'))
     async def smart_attributes(self, name):
         """

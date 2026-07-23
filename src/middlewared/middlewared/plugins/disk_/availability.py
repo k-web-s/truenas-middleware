@@ -6,6 +6,7 @@ from middlewared.schema import Bool
 
 
 class DiskService(Service):
+    instance: 'DiskService'
     @accepts(Bool('join_partitions', default=False))
     async def get_unused(self, join_partitions):
         """

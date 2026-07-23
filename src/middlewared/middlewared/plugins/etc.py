@@ -108,6 +108,7 @@ class PyRenderer(object):
 
 
 class EtcService(Service):
+    instance: 'EtcService'
 
     APACHE_DIR = 'local/apache24' if osc.IS_FREEBSD else 'local/apache2'
 

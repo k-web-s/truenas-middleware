@@ -6,6 +6,7 @@ from middlewared.service import Service
 
 
 class ZettareplService(Service):
+    instance: 'ZettareplService'
 
     class Config:
         private = True

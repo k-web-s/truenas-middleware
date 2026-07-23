@@ -13,6 +13,7 @@ class KeyValueModel(sa.Model):
 
 
 class KeyValueService(Service):
+    instance: 'KeyValueService'
 
     class Config:
         private = True

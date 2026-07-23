@@ -5,6 +5,7 @@ from middlewared.plugins.smb import SMBCmd, WBCErr
 
 
 class SMBService(Service):
+    instance: 'SMBService'
 
     class Config:
         service = 'cifs'

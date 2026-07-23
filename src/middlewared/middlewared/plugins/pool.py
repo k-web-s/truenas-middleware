@@ -133,6 +133,7 @@ class PoolResilverModel(sa.Model):
 
 
 class PoolResilverService(ConfigService):
+    instance: 'PoolResilverService'
 
     class Config:
         namespace = 'pool.resilver'
@@ -252,6 +253,7 @@ class EncryptedDiskModel(sa.Model):
 
 
 class PoolService(CRUDService):
+    instance: 'PoolService'
 
     GELI_KEYPATH = '/data/geli'
 
@@ -1875,6 +1877,7 @@ class PoolService(CRUDService):
 
 
 class PoolDatasetUserPropService(CRUDService):
+    instance: 'PoolDatasetUserPropService'
 
     class Config:
         datastore_primary_key_type = 'string'
@@ -1990,6 +1993,7 @@ class PoolDatasetEncryptionModel(sa.Model):
 
 
 class PoolDatasetService(CRUDService):
+    instance: 'PoolDatasetService'
 
     attachment_delegates = []
     dataset_store = 'storage.encrypteddataset'
@@ -4073,6 +4077,7 @@ class PoolScrubModel(sa.Model):
 
 
 class PoolScrubService(CRUDService):
+    instance: 'PoolScrubService'
 
     class Config:
         datastore = 'storage.scrub'
