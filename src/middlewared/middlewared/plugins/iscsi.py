@@ -1,5 +1,6 @@
 from middlewared.async_validators import check_path_resides_within_volume
 from middlewared.common.attachment import LockableFSAttachmentDelegate
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.schema import (accepts, Bool, Dict, IPAddr, Int, List, Patch,
                                 Str)
 from middlewared.service import CallError, CRUDService, filterable, private, SharingService, ValidationErrors
@@ -68,8 +69,7 @@ class ISCSIPortalService(CRUDService):
     @private
     async def config_extend(self, data):
         data['listen'] = []
-        for portalip in await self.middleware.call(
-            'datastore.query',
+        for portalip in await DatastoreService.instance.query(
             'services.iscsitargetportalip',
             [('portal', '=', data['id'])],
             {'prefix': 'iscsi_target_portalip_'}
@@ -95,11 +95,11 @@ class ISCSIPortalService(CRUDService):
             # instead of the VIP so its clear its not going to bind to the VIP even though
             # thats the value used under the hoods.
             filters = [('int_vip', 'nin', [None, ''])]
-            for i in await self.middleware.call('datastore.query', 'network.Interfaces', filters):
+            for i in await DatastoreService.instance.query('network.Interfaces', filters):
                 choices[i['int_vip']] = f'{i["int_ipv4address"]}/{i["int_ipv4address_b"]}'
 
             filters = [('alias_vip', 'nin', [None, ''])]
-            for i in await self.middleware.call('datastore.query', 'network.Alias', filters):
+            for i in await DatastoreService.instance.query('network.Alias', filters):
                 choices[i['alias_vip']] = f'{i["alias_v4address"]}/{i["alias_v4address_b"]}'
         else:
             key = 'failover_virtual_aliases' if await self.middleware.call('failover.licensed') else 'aliases'
@@ -121,8 +121,8 @@ class ISCSIPortalService(CRUDService):
                 ]
                 if schema == 'iscsiportal_update':
                     filters.append(('iscsi_target_portalip_portal', '!=', data['id']))
-                if await self.middleware.call(
-                    'datastore.query', 'services.iscsitargetportalip', filters
+                if await DatastoreService.instance.query(
+                    'services.iscsitargetportalip', filters
                 ):
                     verrors.add(f'{schema}.listen', f'{i["ip"]}:{i["port"]} already in use.')
 
@@ -133,8 +133,8 @@ class ISCSIPortalService(CRUDService):
                     verrors.add(f'{schema}.listen', f'IP {i["ip"]} not configured on this system.')
 
         if data['discovery_authgroup']:
-            if not await self.middleware.call(
-                'datastore.query', 'services.iscsitargetauthcredential',
+            if not await DatastoreService.instance.query(
+                'services.iscsitargetauthcredential',
                 [('iscsi_target_auth_tag', '=', data['discovery_authgroup'])]
             ):
                 verrors.add(
@@ -172,8 +172,8 @@ class ISCSIPortalService(CRUDService):
             raise verrors
 
         # tag attribute increments sequentially
-        data['tag'] = (await self.middleware.call(
-            'datastore.query', self._config.datastore, [], {'count': True}
+        data['tag'] = (await DatastoreService.instance.query(
+            self._config.datastore, [], {'count': True}
         )) + 1
 
         listen = data.pop('listen')
@@ -186,7 +186,7 @@ class ISCSIPortalService(CRUDService):
         try:
             await self.__save_listen(pk, listen)
         except Exception as e:
-            await self.middleware.call('datastore.delete', self._config.datastore, pk)
+            await DatastoreService.instance.delete(self._config.datastore, pk)
             raise e
 
         await self._service_change('iscsitarget', 'reload')
@@ -211,16 +211,13 @@ class ISCSIPortalService(CRUDService):
 
         for i in old_listen_set - new_listen_set:
             i = dict(i)
-            portalip = await self.middleware.call(
-                'datastore.query',
+            portalip = await DatastoreService.instance.query(
                 'services.iscsitargetportalip',
                 [('portal', '=', pk), ('ip', '=', i['ip']), ('port', '=', i['port'])],
                 {'prefix': 'iscsi_target_portalip_'}
             )
             if portalip:
-                await self.middleware.call(
-                    'datastore.delete', 'services.iscsitargetportalip', portalip[0]['id']
-                )
+                await DatastoreService.instance.delete('services.iscsitargetportalip', portalip[0]['id'])
 
     @accepts(
         Int('id'),
@@ -266,13 +263,9 @@ class ISCSIPortalService(CRUDService):
         Delete iSCSI Portal `id`.
         """
         await self._get_instance(id)
-        await self.middleware.call(
-            'datastore.delete', 'services.iscsitargetgroups', [['iscsi_target_portalgroup', '=', id]]
-        )
-        await self.middleware.call(
-            'datastore.delete', 'services.iscsitargetportalip', [['iscsi_target_portalip_portal', '=', id]]
-        )
-        result = await self.middleware.call('datastore.delete', self._config.datastore, id)
+        await DatastoreService.instance.delete('services.iscsitargetgroups', [['iscsi_target_portalgroup', '=', id]])
+        await DatastoreService.instance.delete('services.iscsitargetportalip', [['iscsi_target_portalip_portal', '=', id]])
+        result = await DatastoreService.instance.delete(self._config.datastore, id)
 
         for i, portal in enumerate(await self.middleware.call('iscsi.portal.query', [], {'order_by': ['tag']})):
             await self.middleware.call(
@@ -394,9 +387,7 @@ class iSCSITargetAuthCredentialService(CRUDService):
             if usages['in_use']:
                 raise CallError(usages['usages'])
 
-        await self.middleware.call(
-            'datastore.delete', self._config.datastore, id
-        )
+        await DatastoreService.instance.delete(self._config.datastore, id)
 
         try:
             await self.ctld_set(config['tag'])
@@ -414,8 +405,8 @@ class iSCSITargetAuthCredentialService(CRUDService):
             usages.append(
                 f'Authorized access of {id} is being used by portal(s): {", ".join(p["id"] for p in portals)}'
             )
-        groups = await self.middleware.call(
-            'datastore.query', 'services.iscsitargetgroups', [['iscsi_target_authgroup', '=', config['tag']]]
+        groups = await DatastoreService.instance.query(
+            'services.iscsitargetgroups', [['iscsi_target_authgroup', '=', config['tag']]]
         )
         if groups:
             usages.append(
@@ -467,12 +458,12 @@ class iSCSITargetAuthCredentialService(CRUDService):
     async def ctld_set(self, tag):
         auths = [
             (i['iscsi_target_auth_user'], i['iscsi_target_auth_secret'], i['iscsi_target_auth_peeruser'], i['iscsi_target_auth_peersecret'])
-            for i in await self.middleware.call(
-            'datastore.query', 'services.iscsitargetauthcredential', [['iscsi_target_auth_tag', '=', tag]]
+            for i in await DatastoreService.instance.query(
+            'services.iscsitargetauthcredential', [['iscsi_target_auth_tag', '=', tag]]
         )]
         async with ctld.CTLDControl() as c:
-            for grp in await self.middleware.call(
-                'datastore.query', 'services.iscsitargetgroups', [['iscsi_target_authgroup', '=', tag]]
+            for grp in await DatastoreService.instance.query(
+                'services.iscsitargetgroups', [['iscsi_target_authgroup', '=', tag]]
             ):
                 type_ = grp['iscsi_target_authtype']
                 if type_ == 'CHAP Mutual':
@@ -678,7 +669,7 @@ class iSCSITargetExtentService(SharingService):
             if instance['enabled']:
                 await self.ctld_set(instance)
                 if not old['enabled']:
-                    for t2e in (await self.middleware.call('datastore.query', 'services.iscsitargettoextent',
+                    for t2e in (await DatastoreService.instance.query('services.iscsitargettoextent',
                                 [('iscsi_extent', '=', instance['id'])])):
                         await self.middleware.call('iscsi.target.ctld_set_luns', int(t2e['iscsi_target']['id']))
             elif old['enabled']:
@@ -723,9 +714,7 @@ class iSCSITargetExtentService(SharingService):
             await self.middleware.call('iscsi.targetextent.delete', target_to_extent['id'], force)
 
         try:
-            return await self.middleware.call(
-                'datastore.delete', self._config.datastore, id
-            )
+            return await DatastoreService.instance.delete(self._config.datastore, id)
         finally:
             try:
                 await self.ctld_del(data['name'])
@@ -825,8 +814,8 @@ class iSCSITargetExtentService(SharingService):
             verrors.add(f'{schema_name}.serial', 'Maximum length of 15 characters is allowed for extent serial')
 
         if name != old or old is None:
-            name_result = await self.middleware.call(
-                'datastore.query', self._config.datastore,
+            name_result = await DatastoreService.instance.query(
+                self._config.datastore,
                 name_filters,
                 {'prefix': self._config.datastore_prefix})
 
@@ -1187,9 +1176,7 @@ class iSCSITargetAuthorizedInitiator(CRUDService):
         Delete iSCSI initiator of `id`.
         """
         await self._get_instance(id)
-        result = await self.middleware.call(
-            'datastore.delete', self._config.datastore, id
-        )
+        result = await DatastoreService.instance.delete(self._config.datastore, id)
 
         await self._service_change('iscsitarget', 'reload')
 
@@ -1265,8 +1252,7 @@ class iSCSITargetService(CRUDService):
         data['mode'] = data['mode'].upper()
 
         data['groups'] = list()
-        for group in await self.middleware.call(
-                'datastore.query',
+        for group in await DatastoreService.instance.query(
                 'services.iscsitargetgroups',
                 [['iscsi_target', '=', data['id']]]):
             data['groups'].append(group)
@@ -1323,7 +1309,7 @@ class iSCSITargetService(CRUDService):
         try:
             await self.__save_groups(pk, groups)
         except Exception as e:
-            await self.middleware.call('datastore.delete', self._config.datastore, pk)
+            await DatastoreService.instance.delete(self._config.datastore, pk)
             raise e
 
         instance = await self._get_instance(pk)
@@ -1345,8 +1331,7 @@ class iSCSITargetService(CRUDService):
 
         for i in old_set - new_set:
             i = dict(i)
-            targetgroup = await self.middleware.call(
-                'datastore.query',
+            targetgroup = await DatastoreService.instance.query(
                 'services.iscsitargetgroups',
                 [
                     ('iscsi_target', '=', pk),
@@ -1357,9 +1342,7 @@ class iSCSITargetService(CRUDService):
                 ],
             )
             if targetgroup:
-                await self.middleware.call(
-                    'datastore.delete', 'services.iscsitargetgroups', targetgroup[0]['id']
-                )
+                await DatastoreService.instance.delete('services.iscsitargetgroups', targetgroup[0]['id'])
 
         for i in new_set - old_set:
             i = dict(i)
@@ -1418,7 +1401,7 @@ class iSCSITargetService(CRUDService):
         db_portals = list(
             map(
                 lambda v: v['id'],
-                await self.middleware.call('datastore.query', 'services.iSCSITargetPortal', [
+                await DatastoreService.instance.query('services.iSCSITargetPortal', [
                     ['id', 'in', list(map(lambda v: v['portal'], data['groups']))]
                 ])
             )
@@ -1427,7 +1410,7 @@ class iSCSITargetService(CRUDService):
         db_initiators = list(
             map(
                 lambda v: v['id'],
-                await self.middleware.call('datastore.query', 'services.iSCSITargetAuthorizedInitiator', [
+                await DatastoreService.instance.query('services.iSCSITargetAuthorizedInitiator', [
                     ['id', 'in', list(map(lambda v: v['initiator'], data['groups']))]
                 ])
             )
@@ -1520,15 +1503,13 @@ class iSCSITargetService(CRUDService):
                 self.middleware.logger.warning('Target %s is in use.', target['name'])
             else:
                 raise CallError(f'Target {target["name"]} is in use.')
-        await self.middleware.call('datastore.delete', 'services.iscsitargettoextent', [['iscsi_target_id', '=', id]])
+        await DatastoreService.instance.delete('services.iscsitargettoextent', [['iscsi_target_id', '=', id]])
 
-        tgg = await self.middleware.call(
-            'datastore.query', 'services.iscsitargetgroups', [['iscsi_target', '=', id]]
+        tgg = await DatastoreService.instance.query(
+            'services.iscsitargetgroups', [['iscsi_target', '=', id]]
         )
-        await self.middleware.call(
-            'datastore.delete', 'services.iscsitargetgroups', [['iscsi_target', '=', id]]
-        )
-        rv = await self.middleware.call('datastore.delete', self._config.datastore, id)
+        await DatastoreService.instance.delete('services.iscsitargetgroups', [['iscsi_target', '=', id]])
+        rv = await DatastoreService.instance.delete(self._config.datastore, id)
 
         if osc.IS_LINUX and await self.middleware.call('service.started', 'iscsitarget'):
             # We explicitly need to do this unfortunately as scst does not accept these changes with a reload
@@ -1583,14 +1564,14 @@ class iSCSITargetService(CRUDService):
             return target['name']
 
         if gconf is None:
-            gconf = await self.middleware.call('datastore.query', 'services.iSCSITargetGlobalConfiguration',
+            gconf = await DatastoreService.instance.query('services.iSCSITargetGlobalConfiguration',
                                             [], {'get': True})
 
         return '{}:{}'.format(gconf['iscsi_basename'], target['name'])
 
     @private
     async def ctld_add(self, target):
-        gconf = await self.middleware.call('datastore.query', 'services.iSCSITargetGlobalConfiguration',
+        gconf = await DatastoreService.instance.query('services.iSCSITargetGlobalConfiguration',
                                         [], {'get': True})
 
         name = await self.target_name(target, gconf=gconf)
@@ -1600,13 +1581,13 @@ class iSCSITargetService(CRUDService):
             alias = target['name']
 
         groups = []
-        for grp in await self.middleware.call('datastore.query', 'services.iscsitargetgroups', [['iscsi_target', '=', target['id']]]):
+        for grp in await DatastoreService.instance.query('services.iscsitargetgroups', [['iscsi_target', '=', target['id']]]):
             groups.append({
                 'grp': grp,
                 'auths': [
                     (i['iscsi_target_auth_user'], i['iscsi_target_auth_secret'], i['iscsi_target_auth_peeruser'], i['iscsi_target_auth_peersecret'])
-                    for i in await self.middleware.call(
-                    'datastore.query', 'services.iscsitargetauthcredential', [['iscsi_target_auth_tag', '=', grp['iscsi_target_authgroup']]])
+                    for i in await DatastoreService.instance.query(
+                    'services.iscsitargetauthcredential', [['iscsi_target_auth_tag', '=', grp['iscsi_target_authgroup']]])
                 ],
                 'agname': 'ag4tg%d_%d' % (target['id'], grp['id']),
             })
@@ -1651,11 +1632,11 @@ class iSCSITargetService(CRUDService):
 
         name = await self.target_name(target)
 
-        assigned_luns = await self.middleware.call('datastore.query', 'services.iscsitargettoextent',
+        assigned_luns = await DatastoreService.instance.query('services.iscsitargettoextent',
                                         [('iscsi_target', '=', target['id']),
                                          ('iscsi_lunid', '!=', None)],
                                         {'order_by': ['iscsi_lunid']})
-        unassigned_luns = await self.middleware.call('datastore.query', 'services.iscsitargettoextent',
+        unassigned_luns = await DatastoreService.instance.query('services.iscsitargettoextent',
                                         [('iscsi_target', '=', target['id']),
                                          ('iscsi_lunid', '=', None)],
                                         {'order_by': ['id']})
@@ -1789,9 +1770,7 @@ class iSCSITargetToExtentService(CRUDService):
             else:
                 raise CallError(f'Associated target {active_sessions[0]} is in use.')
 
-        result = await self.middleware.call(
-            'datastore.delete', self._config.datastore, id
-        )
+        result = await DatastoreService.instance.delete(self._config.datastore, id)
 
         try:
             await self.middleware.call('iscsi.target.ctld_set_luns', int(associated_target['target']))
@@ -1879,9 +1858,9 @@ class ISCSIFSAttachmentDelegate(LockableFSAttachmentDelegate):
         for attachment in attachments:
             for te in await self.middleware.call('iscsi.targetextent.query', [['extent', '=', attachment['id']]]):
                 orphan_targets_ids.add(te['target'])
-                await self.middleware.call('datastore.delete', 'services.iscsitargettoextent', te['id'])
+                await DatastoreService.instance.delete('services.iscsitargettoextent', te['id'])
 
-            await self.middleware.call('datastore.delete', 'services.iscsitargetextent', attachment['id'])
+            await DatastoreService.instance.delete('services.iscsitargetextent', attachment['id'])
             try:
                 await self.middleware.call('iscsi.extent.ctld_del', attachment['name'])
             except:  # in case of any error, do a legacy iscsitarget reload

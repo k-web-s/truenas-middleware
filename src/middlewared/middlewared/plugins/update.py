@@ -2,6 +2,7 @@ from middlewared.schema import accepts, Bool, Dict, Str
 from middlewared.service import job, private, CallError, Service
 import middlewared.sqlalchemy as sa
 from middlewared.plugins.update_.utils import UPLOAD_LOCATION
+from middlewared.plugins.datastore.connection import DatastoreService
 
 from datetime import datetime
 import enum
@@ -111,7 +112,7 @@ class UpdateService(Service):
         Sets if update auto-download is enabled.
         """
         config = await self.middleware.call('datastore.config', 'system.update')
-        await self.middleware.call('datastore.update', 'system.update', config['id'], {'upd_autocheck': autocheck})
+        await DatastoreService.instance.update('system.update', config['id'], {'upd_autocheck': autocheck})
         await self.middleware.call('service.restart', 'cron')
 
     @accepts()
@@ -184,9 +185,9 @@ class UpdateService(Service):
 
             data = self.middleware.call_sync('datastore.config', 'system.update')
             if data['upd_train'] != train:
-                self.middleware.call_sync('datastore.update', 'system.update', data['id'], {
+                self.middleware.run_coroutine(DatastoreService.instance.update('system.update', data['id'], {
                     'upd_train': train
-                })
+                }))
 
         return True
 

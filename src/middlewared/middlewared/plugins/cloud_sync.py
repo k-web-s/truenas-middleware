@@ -8,6 +8,7 @@ from middlewared.service import (
 import middlewared.sqlalchemy as sa
 from middlewared.utils import load_modules, load_classes, Popen, run
 from middlewared.validators import Range, Time
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.validators import validate_attributes
 
 import aiorwlock
@@ -592,11 +593,7 @@ class CredentialsService(CRUDService):
         """
         await self._validate("cloud_sync_credentials_create", data)
 
-        data["id"] = await self.middleware.call(
-            "datastore.insert",
-            "system.cloudcredentials",
-            data,
-        )
+        data["id"] = await DatastoreService.instance.insert("system.cloudcredentials", data)
         return data
 
     @accepts(
@@ -618,12 +615,7 @@ class CredentialsService(CRUDService):
 
         await self._validate("cloud_sync_credentials_update", new, id)
 
-        await self.middleware.call(
-            "datastore.update",
-            "system.cloudcredentials",
-            id,
-            new,
-        )
+        await DatastoreService.instance.update("system.cloudcredentials", id, new)
 
         data["id"] = id
 
@@ -638,11 +630,7 @@ class CredentialsService(CRUDService):
         if tasks:
             raise CallError(f"This credential is used by cloud sync task {tasks[0]['description'] or tasks[0]['id']}")
 
-        await self.middleware.call(
-            "datastore.delete",
-            "system.cloudcredentials",
-            id,
-        )
+        await DatastoreService.instance.delete("system.cloudcredentials", id)
 
     async def _validate(self, schema_name, data, id=None):
         verrors = ValidationErrors()
@@ -753,7 +741,7 @@ class CloudSyncService(TaskPathService):
     @private
     async def _get_credentials(self, credentials_id):
         try:
-            return await self.middleware.call("datastore.query", "system.cloudcredentials",
+            return await DatastoreService.instance.query( "system.cloudcredentials",
                                               [("id", "=", credentials_id)], {"get": True})
         except IndexError:
             return None
@@ -925,7 +913,7 @@ class CloudSyncService(TaskPathService):
 
         cloud_sync = await self._compress(cloud_sync)
 
-        cloud_sync["id"] = await self.middleware.call("datastore.insert", "tasks.cloudsync", cloud_sync)
+        cloud_sync["id"] = await DatastoreService.instance.insert("tasks.cloudsync", cloud_sync)
         await self.middleware.call("service.restart", "cron")
 
         cloud_sync = await self.extend(cloud_sync)
@@ -958,7 +946,7 @@ class CloudSyncService(TaskPathService):
 
         cloud_sync = await self._compress(cloud_sync)
 
-        await self.middleware.call("datastore.update", "tasks.cloudsync", id, cloud_sync)
+        await DatastoreService.instance.update("tasks.cloudsync", id, cloud_sync)
         await self.middleware.call("service.restart", "cron")
 
         return await self.get_instance(id)
@@ -969,7 +957,7 @@ class CloudSyncService(TaskPathService):
         Deletes cloud_sync entry `id`.
         """
         await self.middleware.call("cloudsync.abort", id)
-        await self.middleware.call("datastore.delete", "tasks.cloudsync", id)
+        await DatastoreService.instance.delete("tasks.cloudsync", id)
         await self.middleware.call("alert.oneshot_delete", "CloudSyncTaskFailed", id)
         await self.middleware.call("service.restart", "cron")
 

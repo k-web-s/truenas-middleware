@@ -5,6 +5,7 @@ import struct
 import tdb
 
 from base64 import b64encode, b64decode
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.schema import accepts
 from middlewared.service import Service, private, job
 from middlewared.plugins.smb import SMBCmd, SMBPath
@@ -222,9 +223,9 @@ class DirectoryServices(Service):
     @private
     def get_db_secrets(self):
         rv = {}
-        db = self.middleware.call_sync('datastore.query',
+        db = self.middleware.run_coroutine(DatastoreService.instance.query(
                                        'services.cifs', [],
-                                       {'prefix': 'cifs_srv_', 'get': True})
+                                       {'prefix': 'cifs_srv_', 'get': True}))
 
         rv.update({"id": db['id']})
         if db['secrets'] is None:
@@ -265,10 +266,7 @@ class DirectoryServices(Service):
             return
 
         db_secrets.update({f"{netbios_name.upper()}$": secrets})
-        self.middleware.call_sync('datastore.update',
-                                  'services.cifs', id,
-                                  {'secrets': json.dumps(db_secrets)},
-                                  {'prefix': 'cifs_srv_'})
+        self.middleware.run_coroutine(DatastoreService.instance.update('services.cifs', id, {'secrets': json.dumps(db_secrets)}, {'prefix': 'cifs_srv_'}))
 
     @private
     def restore_secrets(self, netbios_name=None):

@@ -3,6 +3,7 @@ from middlewared.service import CallError, ConfigService, ValidationErrors, job,
 import middlewared.sqlalchemy as sa
 from middlewared.utils import osc
 from middlewared.validators import Email
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.main import RUNDIR
 
 from datetime import datetime, timedelta
@@ -167,7 +168,7 @@ class MailService(ConfigService):
         if verrors:
             raise verrors
 
-        await self.middleware.call('datastore.update', 'system.email', config['id'], new, {'prefix': 'em_'})
+        await DatastoreService.instance.update('system.email', config['id'], new, {'prefix': 'em_'})
 
         await self.middleware.call('mail.gmail_initialize')
 

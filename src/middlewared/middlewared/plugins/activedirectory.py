@@ -21,6 +21,7 @@ from middlewared.utils import filter_list, run
 from middlewared.plugins.directoryservices import DSStatus
 from middlewared.plugins.idmap import DSType
 from middlewared.plugins.kerberos import krb5ccache
+from middlewared.plugins.datastore.connection import DatastoreService
 
 
 class neterr(enum.Enum):
@@ -558,8 +559,7 @@ class ActiveDirectoryService(ConfigService):
                     )
 
         new = await self.ad_compress(new)
-        await self.middleware.call(
-            'datastore.update',
+        await DatastoreService.instance.update(
             'directoryservice.activedirectory',
             old['id'],
             new,
@@ -636,7 +636,7 @@ class ActiveDirectoryService(ConfigService):
         if ad['verbose_logging']:
             self.logger.debug('Starting Active Directory service for [%s]', ad['domainname'])
 
-        await self.middleware.call('datastore.update', self._config.datastore, ad['id'], {'ad_enable': True})
+        await DatastoreService.instance.update(self._config.datastore, ad['id'], {'ad_enable': True})
         await self.middleware.call('etc.generate', 'hostname')
 
         """
@@ -650,11 +650,10 @@ class ActiveDirectoryService(ConfigService):
             if realms:
                 realm_id = realms[0]['id']
             else:
-                realm_id = await self.middleware.call('datastore.insert',
-                                                      'directoryservice.kerberosrealm',
+                realm_id = await DatastoreService.instance.insert('directoryservice.kerberosrealm',
                                                       {'krb_realm': ad['domainname'].upper()})
 
-            await self.middleware.call('datastore.update',
+            await DatastoreService.instance.update(
                                        self._config.datastore,
                                        ad['id'], {'ad_kerberos_realm': realm_id})
             ad = await self.config()
@@ -679,7 +678,7 @@ class ActiveDirectoryService(ConfigService):
 
         if not smb['workgroup'] or smb['workgroup'] == 'WORKGROUP':
             netbios_domain_name = dc_info['Pre-Win2k Domain']
-            await self.middleware.call('datastore.update', 'services.cifs', 1, {'cifs_srv_workgroup': netbios_domain_name})
+            await DatastoreService.instance.update('services.cifs', 1, {'cifs_srv_workgroup': netbios_domain_name})
 
         await self.middleware.call('etc.generate', 'smb')
 
@@ -717,8 +716,7 @@ class ActiveDirectoryService(ConfigService):
                 kt_id = await self.middleware.call('kerberos.keytab.store_samba_keytab')
                 if kt_id:
                     self.logger.debug('Successfully generated keytab for computer account. Clearing bind credentials')
-                    await self.middleware.call(
-                        'datastore.update',
+                    await DatastoreService.instance.update(
                         'directoryservice.activedirectory',
                         ad['id'],
                         {'ad_bindpw': '', 'ad_kerberos_principal': f'{ad["netbiosname"].upper()}$@{ad["domainname"]}'}
@@ -758,7 +756,7 @@ class ActiveDirectoryService(ConfigService):
     @private
     async def stop(self):
         ad = await self.config()
-        await self.middleware.call('datastore.update', self._config.datastore, ad['id'], {'ad_enable': False})
+        await DatastoreService.instance.update(self._config.datastore, ad['id'], {'ad_enable': False})
         await self.set_state(DSStatus['LEAVING'])
         await self.middleware.call('etc.generate', 'hostname')
         await self.middleware.call('kerberos.stop')
@@ -935,8 +933,7 @@ class ActiveDirectoryService(ConfigService):
         try:
             verrors.check()
         except Exception:
-            await self.middleware.call(
-                'datastore.update',
+            await DatastoreService.instance.update(
                 'directoryservice.activedirectory',
                 config['id'],
                 {'ad_enable': False}
@@ -1196,12 +1193,11 @@ class ActiveDirectoryService(ConfigService):
             ad = self.middleware.call_sync('activedirectory.config')
         site_indexed_kerberos_servers = self.get_kerberos_servers(ad)
         if site_indexed_kerberos_servers:
-            self.middleware.call_sync(
-                'datastore.update',
+            self.middleware.run_coroutine(DatastoreService.instance.update(
                 'directoryservice.kerberosrealm',
                 ad['kerberos_realm'],
                 site_indexed_kerberos_servers
-            )
+            ))
             self.middleware.call_sync('etc.generate', 'kerberos')
 
     @private
@@ -1338,7 +1334,7 @@ class ActiveDirectoryService(ConfigService):
             if krb_princ:
                 await self.middleware.call('kerberos.keytab.delete', krb_princ[0]['id'])
 
-        await self.middleware.call('datastore.delete', 'directoryservice.kerberosrealm', ad['kerberos_realm'])
+        await DatastoreService.instance.delete('directoryservice.kerberosrealm', ad['kerberos_realm'])
 
         if netads.returncode == 0:
             try:

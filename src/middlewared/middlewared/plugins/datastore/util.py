@@ -2,6 +2,7 @@ from middlewared.schema import accepts
 from middlewared.service import CallError, private, Service
 from middlewared.sqlalchemy import Model
 
+from middlewared.plugins.datastore.connection import DatastoreService as ConnectionDatastoreService
 from .schema import SchemaMixin
 
 
@@ -37,21 +38,20 @@ class DatastoreService(Service, SchemaMixin):
     async def sql(self, query, *args):
         try:
             if query.strip().split()[0].upper() == 'SELECT':
-                return [dict(row) for row in await self.middleware.call('datastore.fetchall', query, *args)]
+                return [dict(row) for row in await ConnectionDatastoreService.instance.fetchall(query, *args)]
             else:
-                await self.middleware.call('datastore.execute', query, *args)
+                await ConnectionDatastoreService.instance.execute(query, *args)
         except Exception as e:
             raise CallError(e)
 
     @accepts()
     async def dump_json(self):
         models = []
-        for table, in await self.middleware.call(
-                "datastore.fetchall",
+        for table, in await ConnectionDatastoreService.instance.fetchall(
                 "SELECT name FROM sqlite_master WHERE type = 'table'"
         ):
             try:
-                entries = await self.middleware.call("datastore.sql", f"SELECT * FROM {table}")
+                entries = await self.sql(f"SELECT * FROM {table}")
             except CallError as e:
                 self.logger.debug("%r", e)
                 continue
@@ -65,7 +65,7 @@ class DatastoreService(Service, SchemaMixin):
                         "verbose_name": row[1],
                         "database_type": row[2],
                     }
-                    for row in await self.middleware.call("datastore.fetchall", "PRAGMA table_info('%s');" % table)
+                    for row in await ConnectionDatastoreService.instance.fetchall("PRAGMA table_info('%s');" % table)
                 ],
                 "entries": entries,
             })

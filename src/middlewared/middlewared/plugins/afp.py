@@ -9,6 +9,7 @@ from middlewared.validators import IpAddress, Range
 from middlewared.service import SystemServiceService, ValidationErrors, SharingService, private
 from middlewared.service_exception import CallError
 import middlewared.sqlalchemy as sa
+from middlewared.plugins.datastore.connection import DatastoreService
 import os
 
 
@@ -223,8 +224,8 @@ class SharingAFPService(SharingService):
         Update AFP share `id`.
         """
         verrors = ValidationErrors()
-        old = await self.middleware.call(
-            'datastore.query', self._config.datastore, [('id', '=', id)],
+        old = await DatastoreService.instance.query(
+            self._config.datastore, [('id', '=', id)],
             {'extend': self._config.datastore_extend,
              'prefix': self._config.datastore_prefix,
              'get': True})
@@ -258,7 +259,7 @@ class SharingAFPService(SharingService):
         """
         Delete AFP share `id`.
         """
-        result = await self.middleware.call('datastore.delete', self._config.datastore, id)
+        result = await DatastoreService.instance.delete(self._config.datastore, id)
         await self._service_change('afp', 'reload')
         return result
 
@@ -288,8 +289,8 @@ class SharingAFPService(SharingService):
                 if not old['home']:
                     home_filters.append(('id', '!=', id))
                     # The user already had this set as the home share
-                    home_result = await self.middleware.call(
-                        'datastore.query', self._config.datastore,
+                    home_result = await DatastoreService.instance.query(
+                        self._config.datastore,
                         home_filters, {'prefix': self._config.datastore_prefix})
 
         if home_result:
@@ -314,12 +315,12 @@ class SharingAFPService(SharingService):
             name_filters.append(('id', '!=', id))
             path_filters.append(('id', '!=', id))
 
-        name_result = await self.middleware.call(
-            'datastore.query', self._config.datastore,
+        name_result = await DatastoreService.instance.query(
+            self._config.datastore,
             name_filters,
             {'prefix': self._config.datastore_prefix})
-        path_result = await self.middleware.call(
-            'datastore.query', self._config.datastore,
+        path_result = await DatastoreService.instance.query(
+            self._config.datastore,
             path_filters,
             {'prefix': self._config.datastore_prefix})
 

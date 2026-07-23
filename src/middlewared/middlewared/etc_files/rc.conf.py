@@ -3,6 +3,7 @@ import re
 import subprocess
 import sysctl
 
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.utils.io import write_if_changed
 
 NFS_BINDIP_NOTFOUND = '/tmp/.nfsbindip_notfound'
@@ -40,10 +41,9 @@ def collectd_config(middleware, context):
 def geli_config(middleware, context):
     if not context['failover_licensed'] or context['failover_status'] == 'MASTER':
         providers = []
-        for ed in middleware.call_sync(
-            'datastore.query',
-            'storage.encrypteddisk',
-            [('encrypted_volume__vol_encrypt', '=', 1)],
+        for ed in middleware.run_coroutine(
+            DatastoreService.instance.query('storage.encrypteddisk',
+            [('encrypted_volume__vol_encrypt', '=', 1)]),
         ):
             providers.append(ed['encrypted_provider'])
             provider = ed['encrypted_provider'].replace('/', '_').replace('-', '_')
@@ -110,7 +110,7 @@ def service_announcement(middleware, context):
 
 
 def services_config(middleware, context):
-    services = middleware.call_sync('datastore.query', 'services.services', [], {'prefix': 'srv_'})
+    services = middleware.run_coroutine(DatastoreService.instance.query('services.services', [], {'prefix': 'srv_'}))
 
     """
     JIRA NAS-103496
@@ -207,10 +207,10 @@ def nfs_config(middleware, context):
     yield f'mountd_flags="{" ".join(mountd_flags)}"'
 
     if not context['failover_licensed'] or context['failover_status'] == 'MASTER':
-        enabled = middleware.call_sync(
-            'datastore.query', 'services.services', [
+        enabled = middleware.run_coroutine(
+            DatastoreService.instance.query('services.services', [
                 ('srv_service', '=', 'nfs'), ('srv_enable', '=', True),
-            ]
+            ])
         )
     else:
         enabled = False
@@ -269,10 +269,10 @@ def nis_config(middleware, context):
 
 
 def nut_config(middleware, context):
-    enabled = middleware.call_sync(
-        'datastore.query', 'services.services', [
+    enabled = middleware.run_coroutine(
+        DatastoreService.instance.query('services.services', [
             ('srv_service', '=', 'ups'), ('srv_enable', '=', True),
-        ]
+        ])
     )
     # FIXME: UPS will only work if "Start on boot" is enabled
     if not enabled:
@@ -413,7 +413,7 @@ def watchdog_config(middleware, context):
 
 
 def zfs_config(middleware, context):
-    if middleware.call_sync('datastore.query', 'storage.volume'):
+    if middleware.run_coroutine(DatastoreService.instance.query('storage.volume')):
         yield 'zfs_enable="YES"'
 
 

@@ -7,6 +7,7 @@ from passlib.hash import pbkdf2_sha256
 from middlewared.schema import accepts, Bool, Dict, Int, Str, Patch
 from middlewared.service import CRUDService, private, ValidationErrors
 from middlewared.service_exception import MatchNotFound
+from middlewared.plugins.datastore.connection import DatastoreService
 import middlewared.sqlalchemy as sa
 
 
@@ -122,7 +123,7 @@ class ApiKeyService(CRUDService):
             return None
 
         try:
-            db_key = await self.middleware.call("datastore.query", "account.api_key", [("id", "=", key_id)],
+            db_key = await DatastoreService.instance.query( "account.api_key", [("id", "=", key_id)],
                                                 {"get": True})
         except MatchNotFound:
             return None

@@ -2,10 +2,12 @@ import os
 
 from sqlalchemy.exc import IntegrityError
 
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.pipe import Pipes
 from middlewared.schema import Dict, Int, Str, accepts
 from middlewared.service import CRUDService, job, private
 from middlewared.service_exception import CallError
+from middlewared.plugins.datastore.connection import DatastoreService
 import middlewared.sqlalchemy as sa
 
 
@@ -48,9 +50,7 @@ class ImageService(CRUDService):
         self.__ensure_dir()
 
         try:
-            id = await self.middleware.call('datastore.insert',
-                                            'system.filesystem',
-                                            {'identifier': identifier.lower()})
+            id = await DatastoreService.instance.insert('system.filesystem', {'identifier': identifier.lower()})
         except IntegrityError as e:
             # Likely a duplicate entry
             raise CallError(e)
@@ -72,7 +72,7 @@ class ImageService(CRUDService):
         self.__ensure_dir()
         item = f"/var/db/system/webui/images/{id}.png"
 
-        self.middleware.call_sync('datastore.delete', 'system.filesystem', id)
+        self.middleware.run_coroutine(DatastoreService.instance.delete('system.filesystem', id))
 
         if os.path.exists(item):
             os.remove(item)

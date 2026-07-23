@@ -4,6 +4,7 @@ from middlewared.schema import (Bool, Dict, Int, Patch, Str, ValidationErrors,
                                 accepts)
 from middlewared.service import CRUDService, private
 import middlewared.sqlalchemy as sa
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.utils import osc, run
 from middlewared.validators import Match
 
@@ -197,9 +198,9 @@ class TunableService(CRUDService):
                 skip_dupe = True
 
         if not skip_dupe:
-            tun_vars = await self.middleware.call(
-                'datastore.query', self._config.datastore, [('tun_var', '=',
-                                                             tun_var)])
+            tun_vars = await DatastoreService.instance.query(
+                self._config.datastore, [('tun_var', '=',
+                                                                 tun_var)])
 
             if tun_vars:
                 verrors.add(f"{schema_name}.value",

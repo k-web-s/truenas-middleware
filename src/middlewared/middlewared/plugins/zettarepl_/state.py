@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from middlewared.client import ejson
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.service import periodic, Service
 
 
@@ -130,7 +131,7 @@ class ZettareplService(Service):
         self.middleware.call_hook_sync("zettarepl.state_change", id=task_id, fields=state)
 
     async def load_state(self):
-        for replication in await self.middleware.call("datastore.query", "storage.replication"):
+        for replication in await DatastoreService.instance.query("storage.replication"):
             state = ejson.loads(replication["repl_state"])
             if "last_snapshot" in state:
                 self.last_snapshot[f"replication_task_{replication['id']}"] = state["last_snapshot"]
@@ -141,7 +142,6 @@ class ZettareplService(Service):
     async def flush_state(self):
         for task_id, state in self.serializable_state.items():
             try:
-                await self.middleware.call("datastore.update", "storage.replication", task_id,
-                                           {"repl_state": ejson.dumps(state)})
+                await DatastoreService.instance.update("storage.replication", task_id, {"repl_state": ejson.dumps(state)})
             except RuntimeError:
                 pass

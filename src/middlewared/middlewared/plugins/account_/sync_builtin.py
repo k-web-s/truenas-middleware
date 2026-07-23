@@ -5,6 +5,7 @@ import pkg_resources
 
 from middlewared.service import private, Service
 from middlewared.utils import osc
+from middlewared.plugins.datastore.connection import DatastoreService
 
 
 def read_file(path):
@@ -24,39 +25,35 @@ class UserService(Service):
         ]
         remove_groups = {
             group["group"]: group
-            for group in self.middleware.call_sync(
-                "datastore.query",
+            for group in self.middleware.run_coroutine(DatastoreService.instance.query(
                 "account.bsdgroups",
                 [("builtin", "=", True)],
                 {"prefix": "bsdgrp_"},
-            )
+            ))
         }
         remove_users = {
             user["username"]: user
-            for user in self.middleware.call_sync(
-                "datastore.query",
+            for user in self.middleware.run_coroutine(DatastoreService.instance.query(
                 "account.bsdusers",
                 [("builtin", "=", True)],
                 {"prefix": "bsdusr_"},
-            )
+            ))
         }
         non_builtin_groups = {
             group["group"]: group
-            for group in self.middleware.call_sync(
-                "datastore.query",
+            for group in self.middleware.run_coroutine(DatastoreService.instance.query(
                 "account.bsdgroups",
                 [("builtin", "=", False)],
                 {"prefix": "bsdgrp_"},
-            )
+            ))
         }
         non_builtin_users = {
             user["username"]: user
-            for user in self.middleware.call_sync(
-                "datastore.query",
+            for user in self.middleware.run_coroutine(DatastoreService.instance.query(
                 "account.bsdusers",
                 [("builtin", "=", False)],
                 {"prefix": "bsdusr_"},
-            )
+            ))
         }
 
         path = pkg_resources.resource_filename("middlewared", f"assets/account/builtin/{osc.SYSTEM.lower()}")
@@ -137,23 +134,25 @@ class UserService(Service):
 
             remove_group_ids = [group["id"] for group in remove_groups]
 
-            nogroup_id = self.middleware.call_sync(
-                "datastore.query",
-                "account.bsdgroups",
-                [("group", "=", "nogroup")],
-                {
-                    "get": True,
-                    "prefix": "bsdgrp_",
-                },
+            nogroup_id = self.middleware.run_coroutine(
+                DatastoreService.instance.query(
+                    "account.bsdgroups",
+                    [("group", "=", "nogroup")],
+                    {
+                        "get": True,
+                        "prefix": "bsdgrp_",
+                    },
+                )
             )["id"]
 
-            for user in self.middleware.call_sync(
-                "datastore.query",
-                "account.bsdusers",
-                [
-                    ("group_id", "in", remove_group_ids),
-                ],
-                {"prefix": "bsdusr_"},
+            for user in self.middleware.run_coroutine(
+                DatastoreService.instance.query(
+                    "account.bsdusers",
+                    [
+                        ("group_id", "in", remove_group_ids),
+                    ],
+                    {"prefix": "bsdusr_"},
+                )
             ):
                 self.middleware.call_sync(
                     "datastore.update",
@@ -197,29 +196,31 @@ class UserService(Service):
                     {"prefix": "bsdusr_"},
                 )
 
-            group = self.middleware.call_sync(
-                "datastore.query",
-                "account.bsdgroups",
-                [("gid", "=", gid)],
-                {
-                    "get": True,
-                    "prefix": "bsdgrp_",
-                },
+            group = self.middleware.run_coroutine(
+                DatastoreService.instance.query(
+                    "account.bsdgroups",
+                    [("gid", "=", gid)],
+                    {
+                        "get": True,
+                        "prefix": "bsdgrp_",
+                    },
+                )
             )
 
             existing_user = remove_users.pop(name, None)
             if existing_user is not None:
                 # Reload updated GID
-                existing_user = self.middleware.call_sync(
-                    "datastore.query",
-                    "account.bsdusers",
-                    [
-                        ("id", "=", existing_user["id"]),
-                    ],
-                    {
-                        "get": True,
-                        "prefix": "bsdusr_",
-                    },
+                existing_user = self.middleware.run_coroutine(
+                    DatastoreService.instance.query(
+                        "account.bsdusers",
+                        [
+                            ("id", "=", existing_user["id"]),
+                        ],
+                        {
+                            "get": True,
+                            "prefix": "bsdusr_",
+                        },
+                    )
                 )
 
                 update = {}
@@ -266,14 +267,15 @@ class UserService(Service):
                 )
 
             for group_id in groups_members[name]:
-                if not self.middleware.call_sync(
-                    "datastore.query",
-                    "account.bsdgroupmembership",
-                    [
-                        ("group", "=", group_id),
-                        ("user", "=", existing_user["id"]),
-                    ],
-                    {"prefix": "bsdgrpmember_"},
+                if not self.middleware.run_coroutine(
+                    DatastoreService.instance.query(
+                        "account.bsdgroupmembership",
+                        [
+                            ("group", "=", group_id),
+                            ("user", "=", existing_user["id"]),
+                        ],
+                        {"prefix": "bsdgrpmember_"},
+                    )
                 ):
                     self.logger.info("Adding user %r to group %r", name, group_id)
                     self.middleware.call_sync(

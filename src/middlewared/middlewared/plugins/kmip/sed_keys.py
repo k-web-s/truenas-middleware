@@ -3,6 +3,7 @@
 # Licensed under the terms of the TrueNAS Enterprise License Agreement
 # See the file LICENSE.IX for complete terms and conditions
 
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.service import job, private, Service
 
 from .connection import KMIPServerMixin
@@ -92,7 +93,7 @@ class KMIPService(Service, KMIPServerMixin):
         are not in the memory as that is what we rely on while actually using the SED keys functionality.
         """
         adv_config = await self.middleware.call('datastore.config', 'system.advanced', {'prefix': 'adv_'})
-        disks = await self.middleware.call('datastore.query', 'storage.disk', [], {'prefix': 'disk_'})
+        disks = await DatastoreService.instance.query('storage.disk', [], {'prefix': 'disk_'})
         config = await self.middleware.call('kmip.config')
         check_db_key = config['enabled'] and config['manage_sed_disks']
         for disk in disks:
@@ -127,9 +128,9 @@ class KMIPService(Service, KMIPServerMixin):
         adv_config = self.middleware.call_sync('datastore.config', 'system.advanced', {'prefix': 'adv_'})
         failed = []
         with self._connection(self.middleware.call_sync('kmip.connection_config')) as conn:
-            for disk in self.middleware.call_sync(
-                'datastore.query', 'storage.disk', [['identifier', 'in', ids]] if ids else [], {'prefix': 'disk_'}
-            ):
+            for disk in self.middleware.run_coroutine(DatastoreService.instance.query(
+                'storage.disk', [['identifier', 'in', ids]] if ids else [], {'prefix': 'disk_'}
+            )):
                 if not disk['passwd'] and disk['kmip_uid']:
                     try:
                         key = self._retrieve_secret_data(disk['kmip_uid'], conn)
@@ -203,9 +204,9 @@ class KMIPService(Service, KMIPServerMixin):
         """
         failed = []
         connection_successful = self.middleware.call_sync('kmip.test_connection')
-        for disk in self.middleware.call_sync(
-            'datastore.query', 'storage.disk', [['kmip_uid', '!=', None]], {'prefix': 'disk_'}
-        ):
+        for disk in self.middleware.run_coroutine(DatastoreService.instance.query(
+            'storage.disk', [['kmip_uid', '!=', None]], {'prefix': 'disk_'}
+        )):
             try:
                 if disk['passwd']:
                     key = disk['passwd']
@@ -291,8 +292,8 @@ class KMIPService(Service, KMIPServerMixin):
         that the KMIP server can never be reached now and he/she does not want the system trying again to initiate
         a sync with the KMIP server.
         """
-        for disk in await self.middleware.call(
-            'datastore.query', 'storage.disk', [['kmip_uid', '!=', None]], {'prefix': 'disk_'}
+        for disk in await DatastoreService.instance.query(
+            'storage.disk', [['kmip_uid', '!=', None]], {'prefix': 'disk_'}
         ):
             await self.middleware.call(
                 'datastore.update', 'storage.disk', disk['identifier'], {'disk_kmip_uid': None}
@@ -311,9 +312,9 @@ class KMIPService(Service, KMIPServerMixin):
         On middleware boot, we initialize memory cache to contain all the SED keys which we can later use
         for SED related functionality.
         """
-        for disk in self.middleware.call_sync(
-            'datastore.query', 'storage.disk', [], {'prefix': 'disk_'}
-        ):
+        for disk in self.middleware.run_coroutine(DatastoreService.instance.query(
+            'storage.disk', [], {'prefix': 'disk_'}
+        )):
             if disk['passwd']:
                 self.disks_keys[disk['identifier']] = disk['passwd']
             elif disk['kmip_uid'] and connection_success:
