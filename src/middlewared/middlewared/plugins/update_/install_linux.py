@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateService(Service):
+    instance: 'UpdateService'
     @private
     def install_impl(self, job, location):
         self._install(

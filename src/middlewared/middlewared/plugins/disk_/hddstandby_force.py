@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class DiskService(Service):
+    instance: 'DiskService'
     disks = {}
     interval = None
 

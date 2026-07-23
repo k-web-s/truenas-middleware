@@ -775,6 +775,7 @@ class ServicePartBase(metaclass=ServicePartBaseMeta):
 
 
 class CoreService(Service):
+    instance: 'CoreService'
 
     @accepts(Str('id'), Int('cols'), Int('rows'))
     async def resize_shell(self, id, cols, rows):

@@ -8,6 +8,7 @@ DEVD_SOCKETFILE = '/var/run/devd.pipe'
 
 
 class DeviceService(Service):
+    instance: 'DeviceService'
     @private
     async def devd_connected(self):
         return DEVD_CONNECTED

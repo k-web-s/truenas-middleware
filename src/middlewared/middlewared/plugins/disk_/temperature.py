@@ -51,6 +51,7 @@ def get_temperature(stdout):
 
 
 class DiskService(Service):
+    instance: 'DiskService'
     temps_result = None
     temps_probed = datetime.min
     temp_timeout = 300  # seconds

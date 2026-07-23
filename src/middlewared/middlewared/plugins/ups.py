@@ -53,6 +53,7 @@ class UPSModel(sa.Model):
 
 
 class UPSService(SystemServiceService):
+    instance: 'UPSService'
     try:
         DRIVERS_AVAILABLE = set(os.listdir(DRIVER_BIN_DIR))
     except FileNotFoundError:

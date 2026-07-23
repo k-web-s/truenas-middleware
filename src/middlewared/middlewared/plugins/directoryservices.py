@@ -127,6 +127,7 @@ class DirectorySecrets(object):
 
 
 class DirectoryServices(Service):
+    instance: 'DirectoryServices'
     class Config:
         service = "directoryservices"
 

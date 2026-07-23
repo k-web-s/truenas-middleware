@@ -5,6 +5,7 @@ from middlewared.service import CallError, private, Service
 
 
 class DiskService(Service):
+    instance: 'DiskService'
 
     @private
     def format(self, disk, swapgb, sync=True):

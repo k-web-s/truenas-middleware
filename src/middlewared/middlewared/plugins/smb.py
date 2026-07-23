@@ -216,6 +216,7 @@ class WBCErr(enum.Enum):
 
 
 class SMBService(SystemServiceService):
+    instance: 'SMBService'
 
     class Config:
         service = 'cifs'
@@ -739,6 +740,7 @@ class SharingSMBModel(sa.Model):
 
 
 class SharingSMBService(SharingService):
+    instance: 'SharingSMBService'
 
     share_task_type = 'SMB'
 

@@ -15,6 +15,7 @@ def get_members(tar, prefix):
 
 
 class ReportingService(Service):
+    instance: 'ReportingService'
 
     @private
     @lock('reporting.setup')

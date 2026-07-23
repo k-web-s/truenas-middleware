@@ -420,6 +420,7 @@ class LDAPModel(sa.Model):
 
 
 class LDAPService(ConfigService):
+    instance: 'LDAPService'
     class Config:
         service = "ldap"
         datastore = 'directoryservice.ldap'

@@ -78,6 +78,7 @@ class MountFsContextManager:
 
 
 class PoolService(Service, ImportDiskBase):
+    instance: 'PoolService'
 
     RE_NLS = re.compile(r"nls_(.+)\.ko")
 

@@ -13,6 +13,7 @@ UPLOAD_LABEL = 'updatemdu'
 
 
 class UpdateService(Service):
+    instance: 'UpdateService'
     @private
     def create_upload_location(self):
         geom.scan()

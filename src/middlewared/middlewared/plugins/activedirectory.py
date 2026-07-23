@@ -185,6 +185,7 @@ class ActiveDirectoryModel(sa.Model):
 
 
 class ActiveDirectoryService(ConfigService):
+    instance: 'ActiveDirectoryService'
     class Config:
         service = "activedirectory"
         datastore = 'directoryservice.activedirectory'

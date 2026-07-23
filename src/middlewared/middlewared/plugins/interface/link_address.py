@@ -2,6 +2,7 @@ from middlewared.service import private, Service
 
 
 class InterfaceService(Service):
+    instance: 'InterfaceService'
 
     class Config:
         namespace_alias = "interfaces"

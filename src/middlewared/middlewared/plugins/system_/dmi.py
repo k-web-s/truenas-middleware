@@ -5,6 +5,7 @@ from middlewared.service import private, Service
 
 
 class SystemService(Service):
+    instance: 'SystemService'
     # DMI information is mostly static so cache it
     HAS_CACHE = False
     CACHE = {

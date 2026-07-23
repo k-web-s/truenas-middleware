@@ -245,6 +245,7 @@ class ZettareplProcess:
 
 
 class ZettareplService(Service):
+    instance: 'ZettareplService'
 
     class Config:
         private = True

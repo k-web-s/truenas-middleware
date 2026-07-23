@@ -4,6 +4,7 @@ from middlewared.utils import run
 
 
 class BootService(Service):
+    instance: 'BootService'
 
     @accepts(
         Str('dev'),

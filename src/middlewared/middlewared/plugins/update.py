@@ -96,6 +96,7 @@ class UpdateModel(sa.Model):
 
 
 class UpdateService(Service):
+    instance: 'UpdateService'
 
     @accepts()
     async def get_auto_download(self):

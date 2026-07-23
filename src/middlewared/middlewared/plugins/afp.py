@@ -36,6 +36,7 @@ class AFPLogLevel(enum.Enum):
 
 
 class AFPService(SystemServiceService):
+    instance: 'AFPService'
 
     class Config:
         service = 'afp'
@@ -143,6 +144,7 @@ class SharingAFPModel(sa.Model):
 
 
 class SharingAFPService(SharingService):
+    instance: 'SharingAFPService'
 
     share_task_type = 'AFP'
 

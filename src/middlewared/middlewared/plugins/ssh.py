@@ -42,6 +42,7 @@ class SSHModel(sa.Model):
 
 
 class SSHService(SystemServiceService):
+    instance: 'SSHService'
 
     class Config:
         service = "ssh"

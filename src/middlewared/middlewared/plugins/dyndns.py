@@ -21,6 +21,7 @@ class DynDNSModel(sa.Model):
 
 
 class DynDNSService(SystemServiceService):
+    instance: 'DynDNSService'
 
     class Config:
         service = "dynamicdns"

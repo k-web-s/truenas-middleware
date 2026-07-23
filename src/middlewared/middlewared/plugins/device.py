@@ -4,6 +4,7 @@ from bsd.devinfo import DevInfo
 
 
 class DeviceService(Service):
+    instance: 'DeviceService'
 
     @accepts(Str('type', enum=['SERIAL', 'DISK']))
     async def get_info(self, _type):

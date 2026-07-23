@@ -3,6 +3,7 @@ from middlewared.service import CallError, job, Service, ValidationErrors
 
 
 class PoolService(Service):
+    instance: 'PoolService'
 
     @accepts(
         Int('oid'),

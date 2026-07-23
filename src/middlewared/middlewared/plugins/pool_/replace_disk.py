@@ -6,6 +6,7 @@ from middlewared.service import item_method, job, Service, ValidationErrors
 
 
 class PoolService(Service):
+    instance: 'PoolService'
 
     @item_method
     @accepts(Int('id'), Dict(

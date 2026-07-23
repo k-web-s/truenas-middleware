@@ -4,6 +4,7 @@ from .type_base import InterfaceType, InterfaceTypeBase
 
 
 class InterfaceService(Service, InterfaceTypeBase):
+    instance: 'InterfaceService'
 
     class Config:
         namespace_alias = 'interfaces'

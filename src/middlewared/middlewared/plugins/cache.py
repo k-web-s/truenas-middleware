@@ -10,6 +10,7 @@ import grp
 
 
 class CacheService(Service):
+    instance: 'CacheService'
 
     class Config:
         private = True
@@ -89,6 +90,7 @@ class CacheService(Service):
 
 
 class DSCache(Service):
+    instance: 'DSCache'
 
     class Config:
         private = True

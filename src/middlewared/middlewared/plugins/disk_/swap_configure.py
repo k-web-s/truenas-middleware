@@ -11,6 +11,7 @@ MIRROR_MAX = 5
 
 
 class DiskService(Service):
+    instance: 'DiskService'
 
     @private
     @lock('swaps_configure')

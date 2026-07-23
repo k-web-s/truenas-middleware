@@ -15,6 +15,7 @@ run_kw = dict(check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encodi
 
 
 class UpdateService(Service):
+    instance: 'UpdateService'
     @private
     def install_scale(self, mounted, progress_callback):
         with open(os.path.join(mounted, "manifest.json")) as f:

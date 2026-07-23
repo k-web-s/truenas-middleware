@@ -16,6 +16,7 @@ RE_BE_NAME = r'^[^/ *\'"?@!#$%^&()+=~<>;\\]+$'
 
 
 class BootEnvService(CRUDService):
+    instance: 'BootEnvService'
 
     class Config:
         datastore_primary_key_type = 'string'

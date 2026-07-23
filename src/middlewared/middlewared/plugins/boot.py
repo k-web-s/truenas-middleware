@@ -16,6 +16,7 @@ BOOT_POOL_NAME_VALID = ['freenas-boot', 'boot-pool']
 
 
 class BootService(Service):
+    instance: 'BootService'
 
     @private
     async def pool_name(self):

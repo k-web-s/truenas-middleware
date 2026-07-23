@@ -6,6 +6,7 @@ from .global_base import GlobalActionsBase
 
 
 class ISCSIGlobalService(Service, GlobalActionsBase):
+    instance: 'ISCSIGlobalService'
 
     class Config:
         datastore_extend = 'iscsi.global.config_extend'

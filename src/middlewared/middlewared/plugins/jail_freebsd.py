@@ -142,6 +142,7 @@ def common_validation(middleware, options, update=False, jail=None, schema='opti
 
 
 class PluginService(CRUDService):
+    instance: 'PluginService'
 
     class Config:
         datastore_primary_key_type = 'string'
@@ -713,6 +714,7 @@ class PluginService(CRUDService):
 
 
 class JailService(CRUDService):
+    instance: 'JailService'
 
     class Config:
         datastore_primary_key_type = 'string'

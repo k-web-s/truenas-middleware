@@ -11,6 +11,7 @@ from .utils_freebsd import UpdateHandler
 
 
 class UpdateService(Service):
+    instance: 'UpdateService'
     @private
     def download_impl(self, job, train, location, progress_proportion):
         scale_flag = os.path.join(location, 'scale')

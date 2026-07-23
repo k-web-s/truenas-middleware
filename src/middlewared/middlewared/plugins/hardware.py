@@ -3,6 +3,7 @@ from middlewared.schema import accepts
 
 
 class HardwareEventsService(Service):
+    instance: 'HardwareEventsService'
 
     class Config:
         namespace = 'hardware.events'

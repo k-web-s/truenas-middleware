@@ -16,6 +16,7 @@ run_kw = dict(check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encodi
 
 
 class UpdateService(Service):
+    instance: 'UpdateService'
     @private
     def install_impl(self, job, location):
         if os.path.exists(os.path.join(location, 'scale')):

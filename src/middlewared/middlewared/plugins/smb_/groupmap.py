@@ -17,6 +17,7 @@ WINBINDD_WELL_KNOWN_PADDING = 100
 
 
 class SMBService(Service):
+    instance: 'SMBService'
 
     class Config:
         service = 'cifs'

@@ -9,6 +9,7 @@ CHUNK = 1048576  # 1MB binary
 
 
 class DiskService(Service):
+    instance: 'DiskService'
 
     @private
     def _wipe(self, data):

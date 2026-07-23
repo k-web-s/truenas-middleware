@@ -9,6 +9,7 @@ from .boot_loader_base import BootLoaderBase
 
 
 class BootService(Service, BootLoaderBase):
+    instance: 'BootService'
 
     async def install_loader(self, dev):
         await run('grub-install', '--target=i386-pc', f'/dev/{dev}')

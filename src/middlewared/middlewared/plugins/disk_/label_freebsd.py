@@ -3,6 +3,7 @@ from middlewared.utils import run
 
 
 class DiskService(Service):
+    instance: 'DiskService'
 
     @private
     async def label(self, dev, label):
