@@ -12,6 +12,7 @@ class ReplicationConfigModel(sa.Model):
 
 
 class ReplicationConfigService(ConfigService):
+    instance: 'ReplicationConfigService'
 
     class Config:
         namespace = "replication.config"

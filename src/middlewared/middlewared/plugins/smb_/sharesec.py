@@ -31,6 +31,7 @@ class SIDType(enum.IntEnum):
 
 
 class ShareSec(CRUDService):
+    instance: 'ShareSec'
 
     class Config:
         namespace = 'smb.sharesec'

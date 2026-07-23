@@ -57,6 +57,7 @@ class ISCSIPortalIModel(sa.Model):
 
 
 class ISCSIPortalService(CRUDService):
+    instance: 'ISCSIPortalService'
 
     class Config:
         datastore = 'services.iscsitargetportal'
@@ -296,6 +297,7 @@ class iSCSITargetAuthCredentialModel(sa.Model):
 
 
 class iSCSITargetAuthCredentialService(CRUDService):
+    instance: 'iSCSITargetAuthCredentialService'
 
     class Config:
         namespace = 'iscsi.auth'
@@ -502,6 +504,7 @@ class iSCSITargetExtentModel(sa.Model):
 
 
 class iSCSITargetExtentService(SharingService):
+    instance: 'iSCSITargetExtentService'
 
     share_task_type = 'iSCSI Extent'
 
@@ -1117,6 +1120,7 @@ class iSCSITargetAuthorizedInitiatorModel(sa.Model):
 
 
 class iSCSITargetAuthorizedInitiator(CRUDService):
+    instance: 'iSCSITargetAuthorizedInitiator'
 
     class Config:
         namespace = 'iscsi.initiator'
@@ -1248,6 +1252,7 @@ class iSCSITargetGroupModel(sa.Model):
 
 
 class iSCSITargetService(CRUDService):
+    instance: 'iSCSITargetService'
 
     class Config:
         namespace = 'iscsi.target'
@@ -1692,6 +1697,7 @@ class iSCSITargetToExtentModel(sa.Model):
 
 
 class iSCSITargetToExtentService(CRUDService):
+    instance: 'iSCSITargetToExtentService'
 
     class Config:
         namespace = 'iscsi.targetextent'

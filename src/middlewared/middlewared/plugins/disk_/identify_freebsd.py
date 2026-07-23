@@ -6,6 +6,7 @@ from .identify_base import DiskIdentifyBase
 
 
 class DiskService(Service, DiskIdentifyBase):
+    instance: 'DiskService'
 
     async def device_to_identifier(self, name, disks=None):
         disk_data = disks.get(name)

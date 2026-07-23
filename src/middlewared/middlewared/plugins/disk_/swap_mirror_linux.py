@@ -10,6 +10,7 @@ from .swap_mirror_base import DiskSwapMirrorBase
 
 
 class DiskService(Service, DiskSwapMirrorBase):
+    instance: 'DiskService'
 
     async def create_swap_mirror(self, name, options):
         extra = options['extra']

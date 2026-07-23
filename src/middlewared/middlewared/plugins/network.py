@@ -58,6 +58,7 @@ class NetworkConfigurationModel(sa.Model):
 
 
 class NetworkConfigurationService(ConfigService):
+    instance: 'NetworkConfigurationService'
     class Config:
         namespace = 'network.configuration'
         datastore = 'network.globalconfiguration'
@@ -519,6 +520,7 @@ class NetworkVlanModel(sa.Model):
 
 
 class InterfaceService(CRUDService):
+    instance: 'InterfaceService'
 
     class Config:
         datastore_primary_key_type = 'string'
@@ -2155,6 +2157,7 @@ class InterfaceService(CRUDService):
 
 
 class RouteService(Service):
+    instance: 'RouteService'
 
     class Config:
         namespace_alias = 'routes'
@@ -2336,6 +2339,7 @@ class StaticRouteModel(sa.Model):
 
 
 class StaticRouteService(CRUDService):
+    instance: 'StaticRouteService'
     class Config:
         datastore = 'network.staticroute'
         datastore_prefix = 'sr_'
@@ -2438,6 +2442,7 @@ class StaticRouteService(CRUDService):
 
 
 class DNSService(Service):
+    instance: 'DNSService'
 
     @filterable
     def query(self, filters, options):
@@ -2525,6 +2530,7 @@ class DNSService(Service):
 
 
 class NetworkGeneralService(Service):
+    instance: 'NetworkGeneralService'
 
     class Config:
         namespace = 'network.general'

@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class PoolService(Service):
+    instance: 'PoolService'
 
     @accepts(
         Str('device'),

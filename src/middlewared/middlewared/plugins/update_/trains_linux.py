@@ -7,6 +7,7 @@ from .utils import SCALE_MANIFEST_FILE, scale_update_server
 
 
 class UpdateService(Service):
+    instance: 'UpdateService'
     @private
     async def get_trains_redirection_url(self):
         return f"{scale_update_server()}/trains_redir.json"

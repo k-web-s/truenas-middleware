@@ -28,6 +28,7 @@ class CronJobModel(sa.Model):
 
 
 class CronJobService(CRUDService):
+    instance: 'CronJobService'
 
     class Config:
         datastore = 'tasks.cronjob'

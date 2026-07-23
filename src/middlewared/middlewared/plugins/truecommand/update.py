@@ -27,6 +27,7 @@ class TrueCommandModel(sa.Model):
 
 
 class TruecommandService(ConfigService):
+    instance: 'TruecommandService'
 
     STATUS = Status.DISABLED
 

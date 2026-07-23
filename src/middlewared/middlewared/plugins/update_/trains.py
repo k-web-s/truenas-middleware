@@ -9,6 +9,7 @@ from .utils import scale_update_server
 
 
 class UpdateService(Service):
+    instance: 'UpdateService'
     @private
     async def get_scale_trains_data(self):
         async with async_timeout.timeout(INTERNET_TIMEOUT):

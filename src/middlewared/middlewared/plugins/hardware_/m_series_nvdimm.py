@@ -8,6 +8,7 @@ from middlewared.service import Service
 
 
 class MseriesNvdimmService(Service):
+    instance: 'MseriesNvdimmService'
 
     class Config:
         private = True

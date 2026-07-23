@@ -7,6 +7,7 @@ from .enums import PortalResponseState, Status
 
 
 class TruecommandService(Service, TruecommandAPIMixin):
+    instance: 'TruecommandService'
 
     POLLING_GAP_MINUTES = 5
 

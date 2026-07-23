@@ -24,6 +24,7 @@ class SNMPModel(sa.Model):
 
 
 class SNMPService(SystemServiceService):
+    instance: 'SNMPService'
 
     class Config:
         service = 'snmp'

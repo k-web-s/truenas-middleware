@@ -411,6 +411,8 @@ class LoadPluginsMixin(object):
                 service = parts[0](self)
             else:
                 service = CompoundService(self, [part(self) for part in parts])
+                for part_service in service.parts:
+                    part_service.__class__.instance = service
 
             self.add_service(service)
 
@@ -433,6 +435,7 @@ class LoadPluginsMixin(object):
         self._services[service._config.namespace] = service
         if service._config.namespace_alias:
             self._services_aliases[service._config.namespace_alias] = service
+        service.__class__.instance = service
 
     def get_service(self, name):
         service = self._services.get(name)

@@ -79,6 +79,7 @@ class ReplicationPeriodicSnapshotTaskModel(sa.Model):
 
 
 class ReplicationService(CRUDService):
+    instance: 'ReplicationService'
 
     class Config:
         datastore = "storage.replication"

@@ -982,6 +982,7 @@ class VMDeviceModel(sa.Model):
 
 
 class VMService(CRUDService, LibvirtConnectionMixin):
+    instance: 'VMService'
 
     class Config:
         namespace = 'vm'
@@ -1919,6 +1920,7 @@ class VMService(CRUDService, LibvirtConnectionMixin):
 
 
 class VMDeviceService(CRUDService):
+    instance: 'VMDeviceService'
 
     DEVICE_ATTRS = {
         'CDROM': CDROM.schema,

@@ -146,6 +146,7 @@ class ACLDefault(enum.Enum):
 
 
 class FilesystemService(Service):
+    instance: 'FilesystemService'
 
     @accepts(Str('path', required=True), Ref('query-filters'), Ref('query-options'))
     def listdir(self, path, filters=None, options=None):

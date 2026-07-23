@@ -16,6 +16,7 @@ def throttle_condition(middleware, app, *args, **kwargs):
 
 
 class TruecommandService(Service):
+    instance: 'TruecommandService'
 
     @private
     async def generate_wg_keys(self):

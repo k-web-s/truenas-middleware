@@ -48,6 +48,7 @@ class GmailService:
 
 
 class MailService(Service):
+    instance: 'MailService'
     gmail_service = None
 
     @private

@@ -16,6 +16,7 @@ RE_LAST_UPDATE = re.compile(r'last_update = (\d+)')
 
 
 class StatsService(Service):
+    instance: 'StatsService'
 
     @accepts()
     def get_sources(self):

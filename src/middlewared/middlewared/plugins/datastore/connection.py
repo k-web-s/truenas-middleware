@@ -17,6 +17,7 @@ def regexp(expr, item):
 
 
 class DatastoreService(Service):
+    instance: 'DatastoreService'
 
     class Config:
         private = True

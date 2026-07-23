@@ -28,6 +28,7 @@ class UnscheduledRebootAlertClass(AlertClass, SimpleOneShotAlertClass):
 
 
 class UnscheduledRebootAlertService(Service):
+    instance: 'UnscheduledRebootAlertService'
     async def terminate(self):
         if os.path.exists(SENTINEL_PATH):
             os.unlink(SENTINEL_PATH)

@@ -105,6 +105,7 @@ def overprovision_check(devname, consumers):
 
 
 class DiskService(Service):
+    instance: 'DiskService'
     @accepts(Str("devname"), Int("size"), Bool("geom_scan", default=True, hidden=True))
     async def overprovision(self, devname, size, geom_scan):
         """

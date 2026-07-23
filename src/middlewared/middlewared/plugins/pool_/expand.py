@@ -10,6 +10,7 @@ from middlewared.utils.shell import join_commandline
 
 
 class PoolService(Service):
+    instance: 'PoolService'
 
     @item_method
     @accepts(

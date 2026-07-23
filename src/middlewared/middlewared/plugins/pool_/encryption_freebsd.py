@@ -16,6 +16,7 @@ ENCRYPTEDDISK_LOCK = asyncio.Lock()
 
 
 class PoolService(Service):
+    instance: 'PoolService'
 
     @private
     async def save_encrypteddisks(self, pool_id, enc_disks, disks_cache):

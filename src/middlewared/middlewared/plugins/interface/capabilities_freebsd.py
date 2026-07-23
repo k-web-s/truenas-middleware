@@ -6,6 +6,7 @@ from .capabilities_base import InterfaceCapabilitiesBase
 
 
 class InterfaceService(Service, InterfaceCapabilitiesBase):
+    instance: 'InterfaceService'
 
     class Config:
         namespace_alias = 'interfaces'

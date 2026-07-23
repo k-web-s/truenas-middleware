@@ -11,6 +11,7 @@ DISK_SYNC = 'disk_sync'
 
 
 class DiskService(Service, ServiceChangeMixin):
+    instance: 'DiskService'
 
     DISK_EXPIRECACHE_DAYS = 7
 

@@ -120,6 +120,7 @@ class UserModel(sa.Model):
 
 
 class UserService(CRUDService):
+    instance: 'UserService'
 
     class Config:
         datastore = 'account.bsdusers'
@@ -1056,6 +1057,7 @@ class GroupMembershipModel(sa.Model):
 
 
 class GroupService(CRUDService):
+    instance: 'GroupService'
 
     class Config:
         datastore = 'account.bsdgroups'

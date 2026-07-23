@@ -7,6 +7,7 @@ from middlewared.service import CallError, private, Service
 
 
 class EnterpriseService(Service):
+    instance: 'EnterpriseService'
 
     DATA = None
     IS_OLD_BIOS_VERSION = False

@@ -3,6 +3,7 @@ from middlewared.utils.asyncio_ import asyncio_map
 
 
 class PoolService(Service):
+    instance: 'PoolService'
 
     @private
     async def format_disks(self, job, disks):

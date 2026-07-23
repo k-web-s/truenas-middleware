@@ -100,6 +100,7 @@ class MailModel(sa.Model):
 
 
 class MailService(ConfigService):
+    instance: 'MailService'
 
     oauth_access_token = None
     oauth_access_token_expires_at = None

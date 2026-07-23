@@ -20,6 +20,7 @@ class APIKeyModel(sa.Model):
 
 
 class ApiKeyService(CRUDService):
+    instance: 'ApiKeyService'
 
     class Config:
         namespace = "api_key"

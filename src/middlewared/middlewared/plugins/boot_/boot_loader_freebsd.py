@@ -8,6 +8,7 @@ from .boot_loader_base import BootLoaderBase
 
 
 class BootService(Service, BootLoaderBase):
+    instance: 'BootService'
 
     async def install_loader(self, dev):
         if (await self.middleware.call('boot.get_boot_type')) == 'EFI':

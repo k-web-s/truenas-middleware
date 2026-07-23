@@ -4,6 +4,7 @@ from middlewared.service import Service
 
 
 class EC2Service(Service):
+    instance: 'EC2Service'
     class Meta:
         private = True
 

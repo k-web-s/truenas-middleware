@@ -4,6 +4,7 @@ from middlewared.utils import filter_list
 
 
 class DiskService(Service):
+    instance: 'DiskService'
 
     @private
     @filterable

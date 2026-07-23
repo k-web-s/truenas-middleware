@@ -3,6 +3,7 @@ from middlewared.utils import run
 
 
 class DiskService(Service):
+    instance: 'DiskService'
 
     @private
     async def remove_disk_from_graid(self, dev):

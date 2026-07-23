@@ -14,6 +14,7 @@ else:
 
 
 class InterfaceService(Service):
+    instance: 'InterfaceService'
     class Config:
         namespace_alias = 'interfaces'
 

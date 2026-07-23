@@ -20,6 +20,7 @@ class ISCSIGlobalModel(sa.Model):
 
 
 class ISCSIGlobalService(SystemServiceService):
+    instance: 'ISCSIGlobalService'
 
     class Config:
         datastore_extend = 'iscsi.global.config_extend'

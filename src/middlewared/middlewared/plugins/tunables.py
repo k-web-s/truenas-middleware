@@ -23,6 +23,7 @@ TUNABLE_TYPES = ['SYSCTL'] + ([] if osc.IS_LINUX else ['LOADER', 'RC'])
 
 
 class TunableService(CRUDService):
+    instance: 'TunableService'
     class Config:
         datastore = 'system.tunable'
         datastore_prefix = 'tun_'

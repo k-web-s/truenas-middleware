@@ -21,6 +21,7 @@ FRUIT_CATIA_MAPS = [
 
 
 class SharingSMBService(Service):
+    instance: 'SharingSMBService'
 
     class Config:
         namespace = 'sharing.smb'

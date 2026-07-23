@@ -60,6 +60,7 @@ class DiskModel(sa.Model):
 
 
 class DiskService(CRUDService):
+    instance: 'DiskService'
 
     class Config:
         datastore = 'storage.disk'

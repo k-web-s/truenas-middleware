@@ -52,6 +52,7 @@ class FTPModel(sa.Model):
 
 
 class FTPService(SystemServiceService):
+    instance: 'FTPService'
 
     class Config:
         service = "ftp"

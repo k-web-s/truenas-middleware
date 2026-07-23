@@ -16,6 +16,7 @@ channels = []
 
 
 class IPMIService(CRUDService):
+    instance: 'IPMIService'
 
     @accepts()
     async def is_loaded(self):

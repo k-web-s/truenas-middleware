@@ -26,6 +26,7 @@ class InitShutdownScriptModel(sa.Model):
 
 
 class InitShutdownScriptService(CRUDService):
+    instance: 'InitShutdownScriptService'
 
     class Config:
         datastore = 'tasks.initshutdown'

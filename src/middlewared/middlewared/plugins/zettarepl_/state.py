@@ -5,6 +5,7 @@ from middlewared.service import periodic, Service
 
 
 class ZettareplService(Service):
+    instance: 'ZettareplService'
 
     class Config:
         private = True

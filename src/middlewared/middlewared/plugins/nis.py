@@ -24,6 +24,7 @@ class NISModel(sa.Model):
 
 
 class NISService(ConfigService):
+    instance: 'NISService'
     class Config:
         service = "nis"
         datastore = 'directoryservice.nis'

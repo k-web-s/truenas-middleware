@@ -5,6 +5,7 @@ from middlewared.service import Service
 
 
 class DatastoreService(Service):
+    instance: 'DatastoreService'
 
     class Config:
         private = True

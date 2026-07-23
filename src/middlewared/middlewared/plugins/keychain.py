@@ -236,6 +236,7 @@ class KeychainCredentialModel(sa.Model):
 
 
 class KeychainCredentialService(CRUDService):
+    instance: 'KeychainCredentialService'
 
     class Config:
         datastore = "system.keychaincredential"

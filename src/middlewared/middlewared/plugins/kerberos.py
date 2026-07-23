@@ -105,6 +105,7 @@ class KerberosModel(sa.Model):
 
 
 class KerberosService(ConfigService):
+    instance: 'KerberosService'
     class Config:
         service = "kerberos"
         datastore = 'directoryservice.kerberossettings'
@@ -642,6 +643,7 @@ class KerberosRealmModel(sa.Model):
 
 
 class KerberosRealmService(CRUDService):
+    instance: 'KerberosRealmService'
     class Config:
         datastore = 'directoryservice.kerberosrealm'
         datastore_prefix = 'krb_'
@@ -760,6 +762,7 @@ class KerberosKeytabModel(sa.Model):
 
 
 class KerberosKeytabService(CRUDService):
+    instance: 'KerberosKeytabService'
     class Config:
         datastore = 'directoryservice.kerberoskeytab'
         datastore_prefix = 'keytab_'

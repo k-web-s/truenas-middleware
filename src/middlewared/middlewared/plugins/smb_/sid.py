@@ -8,6 +8,7 @@ RE_SID = re.compile(r"S-\d-\d+-(\d+-){1,14}\d+$")
 
 
 class SMBService(Service):
+    instance: 'SMBService'
 
     class Config:
         service = 'cifs'

@@ -28,6 +28,7 @@ class VMWareModel(sa.Model):
 
 
 class VMWareService(CRUDService):
+    instance: 'VMWareService'
 
     class Config:
         datastore = 'storage.vmwareplugin'

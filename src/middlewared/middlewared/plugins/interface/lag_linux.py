@@ -4,6 +4,7 @@ from .lag_base import InterfaceLagBase
 
 
 class InterfaceService(Service, InterfaceLagBase):
+    instance: 'InterfaceService'
 
     class Config:
         namespace_alias = 'interfaces'

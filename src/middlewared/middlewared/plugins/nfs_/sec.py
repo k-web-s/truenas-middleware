@@ -2,6 +2,7 @@ from middlewared.service import private, Service
 
 
 class NFSService(Service):
+    instance: 'NFSService'
 
     class Config:
         service = "nfs"

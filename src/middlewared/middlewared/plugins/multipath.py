@@ -3,6 +3,7 @@ from middlewared.utils import filter_list
 
 
 class MultipathService(Service):
+    instance: 'MultipathService'
 
     class Config:
         datastore_primary_key_type = 'string'

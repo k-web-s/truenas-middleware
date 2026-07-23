@@ -9,6 +9,7 @@ from .connection import KMIPServerMixin
 
 
 class KMIPService(Service, KMIPServerMixin):
+    instance: 'KMIPService'
 
     @private
     def connection_config(self, data=None):

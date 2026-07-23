@@ -14,6 +14,7 @@ PWENC_CHECK = 'Donuts!'
 
 
 class PWEncService(Service):
+    instance: 'PWEncService'
 
     secret = None
 

@@ -140,6 +140,7 @@ class SmartTestDiskModel(sa.Model):
 
 
 class SMARTTestService(CRUDService):
+    instance: 'SMARTTestService'
 
     class Config:
         datastore = 'tasks.smarttest'
@@ -608,6 +609,7 @@ class SmartModel(sa.Model):
 
 
 class SmartService(SystemServiceService):
+    instance: 'SmartService'
 
     class Config:
         service = "smartd"

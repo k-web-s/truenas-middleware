@@ -220,6 +220,7 @@ def is_internal_session(session):
 
 
 class AuthService(Service):
+    instance: 'AuthService'
     session_manager = SessionManager()
 
     token_manager = TokenManager()
@@ -400,6 +401,7 @@ class TwoFactorAuthModel(sa.Model):
 
 
 class TwoFactorAuthService(ConfigService):
+    instance: 'TwoFactorAuthService'
 
     class Config:
         datastore = 'system.twofactorauthentication'

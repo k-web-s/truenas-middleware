@@ -21,6 +21,7 @@ def regexp(expr, item):
 
 
 class DatastoreService(Service, FilterMixin, SchemaMixin):
+    instance: 'DatastoreService'
 
     class Config:
         private = True

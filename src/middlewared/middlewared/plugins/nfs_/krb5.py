@@ -7,6 +7,7 @@ from middlewared.schema import accepts, Dict, Str
 
 
 class NFSService(Service):
+    instance: 'NFSService'
 
     class Config:
         service = "nfs"

@@ -31,6 +31,7 @@ class PeriodicSnapshotTaskModel(sa.Model):
 
 
 class PeriodicSnapshotTaskService(CRUDService):
+    instance: 'PeriodicSnapshotTaskService'
 
     class Config:
         datastore = 'storage.task'
