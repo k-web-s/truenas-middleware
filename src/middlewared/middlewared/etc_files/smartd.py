@@ -4,6 +4,7 @@ import re
 import subprocess
 
 from middlewared.common.smart.smartctl import get_smartctl_args, smartctl, SMARTCTX
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.utils.asyncio_ import asyncio_map
 logger = logging.getLogger(__name__)
 
@@ -104,7 +105,7 @@ def get_smartd_schedule_piece(value, min, max, enum=None):
 
 
 async def render(service, middleware):
-    smart_config = await middleware.call("datastore.query", "services.smart", [], {"get": True})
+    smart_config = await DatastoreService.instance.query("services.smart", [], {"get": True})
 
     disks = await middleware.call("datastore.sql", """
         SELECT *

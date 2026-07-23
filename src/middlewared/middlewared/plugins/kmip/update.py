@@ -8,6 +8,7 @@ import middlewared.sqlalchemy as sa
 from middlewared.service import accepts, CallError, ConfigService, job, private, ValidationErrors
 from middlewared.schema import Bool, Dict, Int, Str
 from middlewared.validators import Port
+from middlewared.plugins.datastore.connection import DatastoreService
 
 
 class KMIPModel(sa.Model):
@@ -141,8 +142,8 @@ class KMIPService(ConfigService):
             # db -> new server
             # First can be skipped if old server is not reachable and we want to clear keys
             job.set_progress(55, 'Starting migration from existing server to new server')
-            await self.middleware.call(
-                'datastore.update', self._config.datastore, old['id'], {
+            await DatastoreService.instance.update(
+                self._config.datastore, old['id'], {
                     'manage_zfs_keys': False, 'manage_sed_disks': False
                 }
             )
@@ -159,7 +160,7 @@ class KMIPService(ConfigService):
                     errors.append(f'Failed to sync {",".join(sync_job.result)}')
 
             if errors:
-                await self.middleware.call('datastore.update', self._config.datastore, old['id'], old)
+                await DatastoreService.instance.update(self._config.datastore, old['id'], old)
                 # We do this because it's possible a few datasets/disks got synced to db and few didn't - this is
                 # to push all the data of interest back to the KMIP server from db
                 await self.middleware.call('kmip.sync_keys')
@@ -171,8 +172,8 @@ class KMIPService(ConfigService):
 
             job.set_progress(80, 'Successfully synced keys from existing server to local database')
 
-        await self.middleware.call(
-            'datastore.update', self._config.datastore, old['id'], new,
+        await DatastoreService.instance.update(
+            self._config.datastore, old['id'], new,
         )
 
         await self.middleware.call('service.start', 'kmip')

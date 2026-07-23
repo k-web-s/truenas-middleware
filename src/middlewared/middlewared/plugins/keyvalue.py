@@ -1,4 +1,5 @@
 from middlewared.client import ejson as json
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.schema import Any, Str, accepts, Dict
 from middlewared.service import Service
 import middlewared.sqlalchemy as sa
@@ -30,8 +31,8 @@ class KeyValueService(Service):
     async def get(self, key, default):
         try:
             return json.loads(
-                (await self.middleware.call(
-                    "datastore.query", "system.keyvalue", [["key", "=", key]], {"get": True}))["value"])
+                (await DatastoreService.instance.query(
+                    "system.keyvalue", [["key", "=", key]], {"get": True}))["value"])
         except IndexError:
             if default is not None:
                 return default
@@ -45,7 +46,7 @@ class KeyValueService(Service):
     )
     async def set(self, key, value, options):
         try:
-            row = await self.middleware.call("datastore.query", "system.keyvalue", [["key", "=", key]], {"get": True})
+            row = await DatastoreService.instance.query("system.keyvalue", [["key", "=", key]], {"get": True})
         except IndexError:
             await self.middleware.call(
                 "datastore.insert", "system.keyvalue", {"key": key, "value": json.dumps(value)}, options
@@ -62,4 +63,4 @@ class KeyValueService(Service):
         Dict('options', additional_attrs=True),
     )
     async def delete(self, key, options):
-        await self.middleware.call("datastore.delete", "system.keyvalue", [["key", "=", key]], options)
+        await DatastoreService.instance.delete("system.keyvalue", [["key", "=", key]], options)

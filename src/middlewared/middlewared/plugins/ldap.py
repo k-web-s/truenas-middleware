@@ -19,6 +19,7 @@ from middlewared.service_exception import CallError
 import middlewared.sqlalchemy as sa
 from middlewared.utils import run
 from middlewared.plugins.directoryservices import DSStatus, SSL
+from middlewared.plugins.datastore.connection import DatastoreService
 
 
 _int32 = struct.Struct('!i')
@@ -707,8 +708,7 @@ class LDAPService(ConfigService):
                 verrors.check()
 
         await self.ldap_compress(new)
-        await self.middleware.call(
-            'datastore.update',
+        await DatastoreService.instance.update(
             'directoryservice.ldap',
             old['id'],
             new,
@@ -874,8 +874,7 @@ class LDAPService(ConfigService):
         try:
             verrors.check()
         except Exception:
-            await self.middleware.call(
-                'datastore.update',
+            await DatastoreService.instance.update(
                 'directoryservice.ldap',
                 ldap['id'],
                 {'ldap_enable': False}
@@ -932,7 +931,7 @@ class LDAPService(ConfigService):
 
         if ret and smb['workgroup'] != ret:
             self.logger.debug(f'Updating SMB workgroup to match the LDAP domain name [{ret}]')
-            await self.middleware.call('datastore.update', 'services.cifs', smb['id'], {'cifs_srv_workgroup': ret})
+            await DatastoreService.instance.update('services.cifs', smb['id'], {'cifs_srv_workgroup': ret})
 
         return ret
 
@@ -984,7 +983,7 @@ class LDAPService(ConfigService):
         if ldap_state in ['LEAVING', 'JOINING']:
             raise CallError(f'LDAP state is [{ldap_state}]. Please wait until directory service operation completes.', errno.EBUSY)
 
-        await self.middleware.call('datastore.update', self._config.datastore, ldap['id'], {'ldap_enable': True})
+        await DatastoreService.instance.update(self._config.datastore, ldap['id'], {'ldap_enable': True})
         if ldap['kerberos_realm']:
             await self.middleware.call('kerberos.start')
 
@@ -1011,7 +1010,7 @@ class LDAPService(ConfigService):
     @private
     async def stop(self):
         ldap = await self.config()
-        await self.middleware.call('datastore.update', self._config.datastore, ldap['id'], {'ldap_enable': False})
+        await DatastoreService.instance.update(self._config.datastore, ldap['id'], {'ldap_enable': False})
         await self.set_state(DSStatus['LEAVING'])
         await self.middleware.call('etc.generate', 'rc')
         await self.middleware.call('etc.generate', 'nss')

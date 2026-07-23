@@ -9,7 +9,7 @@ import pytest
 
 from middlewared.main import Application, Middleware
 from middlewared.service import accepts, job, CoreService, CRUDService
-from middlewared.plugins.datastore.read import DatastoreService
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.schema import Dict, Str
 
 

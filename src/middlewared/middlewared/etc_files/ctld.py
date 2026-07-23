@@ -5,6 +5,7 @@ import subprocess
 import sysctl
 
 from middlewared.client.utils import Struct
+from middlewared.plugins.datastore.connection import DatastoreService
 logger = logging.getLogger(__name__)
 
 
@@ -110,8 +111,8 @@ def main(middleware):
     cf_contents.clear()
     cf_contents_shadow.clear()
 
-    gconf = Struct(middleware.call_sync('datastore.query', 'services.iSCSITargetGlobalConfiguration',
-                                        [], {'get': True}))
+    gconf = Struct(middleware.run_coroutine(DatastoreService.instance.query('services.iSCSITargetGlobalConfiguration',
+                                        [], {'get': True})))
     if gconf.iscsi_alua:
         node = middleware.call_sync('failover.node')
 
@@ -121,15 +122,15 @@ def main(middleware):
 
     # Generate the portal-group section
     addline('portal-group "default" {\n}\n\n')
-    for pg in middleware.call_sync('datastore.query', 'services.iSCSITargetPortal'):
+    for pg in middleware.run_coroutine(DatastoreService.instance.query('services.iSCSITargetPortal')):
         pg = Struct(pg)
         # Prepare auth group for the portal group
         if pg.iscsi_target_portal_discoveryauthgroup:
             auth_list = [
                 Struct(i)
-                for i in middleware.call_sync('datastore.query', 'services.iSCSITargetAuthCredential',
+                for i in middleware.run_coroutine(DatastoreService.instance.query('services.iSCSITargetAuthCredential',
                                               [('iscsi_target_auth_tag', '=',
-                                                pg.iscsi_target_portal_discoveryauthgroup)])
+                                                pg.iscsi_target_portal_discoveryauthgroup)]))
             ]
         else:
             auth_list = []
@@ -142,8 +143,8 @@ def main(middleware):
         # Prepare IPs to listen on for all portal groups.
         portals = [
             Struct(i)
-            for i in middleware.call_sync('datastore.query', 'services.iSCSITargetPortalIP',
-                                          [('iscsi_target_portalip_portal', '=', pg.id)])
+            for i in middleware.run_coroutine(DatastoreService.instance.query('services.iSCSITargetPortalIP',
+                                          [('iscsi_target_portalip_portal', '=', pg.id)]))
         ]
         listen = []
         listenA = []
@@ -161,14 +162,14 @@ def main(middleware):
                     found = True
                     break
                 if not found:
-                    for net in middleware.call_sync('datastore.query', 'network.Interfaces'):
+                    for net in middleware.run_coroutine(DatastoreService.instance.query('network.Interfaces')):
                         if net['int_vip'] == address and net['int_ipv4address'] and net['int_ipv4address_b']:
                             listenA.append('%s:%s' % (net['int_ipv4address'], portal.iscsi_target_portalip_port))
                             listenB.append('%s:%s' % (net['int_ipv4address_b'], portal.iscsi_target_portalip_port))
                             found = True
                             break
                 if not found:
-                    for alias in middleware.call_sync('datastore.query', 'network.Alias'):
+                    for alias in middleware.run_coroutine(DatastoreService.instance.query('network.Alias')):
                         if alias['alias_vip'] == address and alias['alias_v4address'] and alias['alias_v4address_b']:
                             listenA.append('%s:%s' % (alias['alias_v4address'], portal.iscsi_target_portalip_port))
                             listenB.append('%s:%s' % (alias['alias_v4address_b'], portal.iscsi_target_portalip_port))
@@ -215,8 +216,8 @@ def main(middleware):
     geom_xml = middleware.call_sync('geom.cache.get_class_xml', 'DISK')
     locked_extents = {d['id']: d for d in middleware.call_sync('iscsi.extent.query', [['locked', '=', True]])}
     # Generate the LUN section
-    for extent in middleware.call_sync('datastore.query', 'services.iSCSITargetExtent',
-                                       [['iscsi_target_extent_enabled', '=', True]]):
+    for extent in middleware.run_coroutine(DatastoreService.instance.query('services.iSCSITargetExtent',
+                                       [['iscsi_target_extent_enabled', '=', True]])):
         extent = Struct(extent)
         if extent.id in locked_extents:
             logger.warning('Extent %r is locked, skipping', extent.iscsi_target_extent_name)
@@ -231,9 +232,9 @@ def main(middleware):
         poolname = None
         lunthreshold = None
         if extent.iscsi_target_extent_type == 'Disk':
-            disk = middleware.call_sync('datastore.query', 'storage.Disk',
+            disk = middleware.run_coroutine(DatastoreService.instance.query('storage.Disk',
                                         [('disk_identifier', '=', path)],
-                                        {'order_by': ['disk_expiretime']})
+                                        {'order_by': ['disk_expiretime']}))
             if not disk:
                 continue
             disk = Struct(disk[0])
@@ -312,18 +313,18 @@ def main(middleware):
 
     # Generate the target section
     target_basename = gconf.iscsi_basename
-    for target in middleware.call_sync('datastore.query', 'services.iSCSITarget'):
+    for target in middleware.run_coroutine(DatastoreService.instance.query('services.iSCSITarget')):
         target = Struct(target)
 
         authgroups = {}
-        for grp in middleware.call_sync('datastore.query', 'services.iscsitargetgroups',
-                                        [('iscsi_target', '=', target.id)]):
+        for grp in middleware.run_coroutine(DatastoreService.instance.query('services.iscsitargetgroups',
+                                        [('iscsi_target', '=', target.id)])):
             grp = Struct(grp)
             if grp.iscsi_target_authgroup:
                 auth_list = [
                     Struct(i)
-                    for i in middleware.call_sync('datastore.query', 'services.iSCSITargetAuthCredential',
-                                                  [('iscsi_target_auth_tag', '=', grp.iscsi_target_authgroup)])
+                    for i in middleware.run_coroutine(DatastoreService.instance.query('services.iSCSITargetAuthCredential',
+                                                  [('iscsi_target_auth_tag', '=', grp.iscsi_target_authgroup)]))
                 ]
             else:
                 auth_list = []
@@ -344,8 +345,8 @@ def main(middleware):
         elif target.iscsi_target_name:
             addline('\talias "%s"\n' % target.iscsi_target_name)
 
-        for grp in middleware.call_sync('datastore.query', 'services.iscsitargetgroups',
-                                        [('iscsi_target', '=', target.id)]):
+        for grp in middleware.run_coroutine(DatastoreService.instance.query('services.iscsitargetgroups',
+                                        [('iscsi_target', '=', target.id)])):
             grp = Struct(grp)
             agname = authgroups.get(grp.id) or 'no-authentication'
             if gconf.iscsi_alua:
@@ -359,14 +360,14 @@ def main(middleware):
         addline('\n')
         used_lunids = [
             o['iscsi_lunid']
-            for o in middleware.call_sync('datastore.query', 'services.iscsitargettoextent',
+            for o in middleware.run_coroutine(DatastoreService.instance.query('services.iscsitargettoextent',
                                           [('iscsi_target', '=', target.id),
-                                           ('iscsi_lunid', '!=', None)])
+                                           ('iscsi_lunid', '!=', None)]))
         ]
         cur_lunid = 0
-        for t2e in middleware.call_sync('datastore.query', 'services.iscsitargettoextent',
+        for t2e in middleware.run_coroutine(DatastoreService.instance.query('services.iscsitargettoextent',
                                         [('iscsi_target', '=', target.id)],
-                                        {'order_by': ['nulls_last:iscsi_lunid']}):
+                                        {'order_by': ['nulls_last:iscsi_lunid']})):
             t2e = Struct(t2e)
             if not t2e.iscsi_extent.iscsi_target_extent_enabled or t2e.iscsi_extent.id in locked_extents:
                 # Skip adding extents to targets which are not enabled or are using locked zvols

@@ -22,6 +22,7 @@ from middlewared.service import (
     ConfigService, Service, filterable, filter_list, no_auth_required, pass_app, private, CallError
 )
 import middlewared.sqlalchemy as sa
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.utils import osc, Popen
 from middlewared.validators import Range
 
@@ -281,7 +282,7 @@ class AuthService(Service):
         Verify username and password
         """
         try:
-            user = await self.middleware.call('datastore.query', 'account.bsdusers',
+            user = await DatastoreService.instance.query( 'account.bsdusers',
                                               [('bsdusr_username', '=', username)], {'get': True})
         except IndexError:
             return False

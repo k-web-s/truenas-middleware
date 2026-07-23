@@ -392,15 +392,17 @@ class ConfigService(ServiceChangeMixin, Service):
 
     @private
     async def _get_or_insert(self, datastore, options):
+        from middlewared.plugins.datastore.connection import DatastoreService
+
         try:
-            return await self.middleware.call('datastore.config', datastore, options)
+            return await DatastoreService.instance.config(datastore, options)
         except IndexError:
             async with get_or_insert_lock:
                 try:
-                    return await self.middleware.call('datastore.config', datastore, options)
+                    return await DatastoreService.instance.config(datastore, options)
                 except IndexError:
-                    await self.middleware.call('datastore.insert', datastore, {})
-                    return await self.middleware.call('datastore.config', datastore, options)
+                    await DatastoreService.instance.insert(datastore, {})
+                    return await DatastoreService.instance.config(datastore, options)
 
 
 class SystemServiceService(ConfigService):
@@ -422,9 +424,11 @@ class SystemServiceService(ConfigService):
 
     @private
     async def _update_service(self, old, new, verb=None):
-        await self.middleware.call('datastore.update',
-                                   f'services.{self._config.service_model or self._config.service}', old['id'], new,
-                                   {'prefix': self._config.datastore_prefix})
+        from middlewared.plugins.datastore.connection import DatastoreService
+
+        await DatastoreService.instance.update(
+            f'services.{self._config.service_model or self._config.service}', old['id'], new,
+            {'prefix': self._config.datastore_prefix})
 
         fut = self._service_change(self._config.service, verb or self._config.service_verb)
         if self._config.service_verb_sync:
@@ -461,6 +465,8 @@ class CRUDService(ServiceChangeMixin, Service):
 
     @filterable
     async def query(self, filters=None, options=None):
+        from middlewared.plugins.datastore.connection import DatastoreService
+
         if not self._config.datastore:
             raise NotImplementedError(
                 f'{self._config.namespace}.query must be implemented or a '
@@ -479,15 +485,15 @@ class CRUDService(ServiceChangeMixin, Service):
             datastore_options = options.copy()
             for option in PAGINATION_OPTS:
                 datastore_options.pop(option, None)
-            result = await self.middleware.call(
-                'datastore.query', self._config.datastore, [], datastore_options
+            result = await DatastoreService.instance.query(
+                self._config.datastore, [], datastore_options
             )
             return await self.middleware.run_in_thread(
                 filter_list, result, filters, options
             )
         else:
-            return await self.middleware.call(
-                'datastore.query', self._config.datastore, filters, options,
+            return await DatastoreService.instance.query(
+                self._config.datastore, filters, options,
             )
 
     @pass_app(rest=True)
@@ -566,6 +572,8 @@ class CRUDService(ServiceChangeMixin, Service):
         """
         Raises EBUSY CallError if some datastores/services (except for `ignored`) reference object specified by id.
         """
+        from middlewared.plugins.datastore.connection import DatastoreService
+
         ignored = ignored or set()
 
         services = {
@@ -590,7 +598,7 @@ class CRUDService(ServiceChangeMixin, Service):
             else:
                 service = None
 
-            objects = await self.middleware.call('datastore.query', datastore, [(fk, '=', id)])
+            objects = await DatastoreService.instance.query(datastore, [(fk, '=', id)])
             if objects:
                 data = {
                     'objects': objects,

@@ -11,6 +11,7 @@ from middlewared.schema import accepts, Bool, Dict, Int, List, Ref, Str
 from middlewared.service import Service
 from middlewared.service_exception import MatchNotFound
 
+from middlewared.plugins.datastore.connection import DatastoreService as ConnectionDatastoreService
 from .filter import FilterMixin
 from .schema import SchemaMixin
 
@@ -103,7 +104,7 @@ class DatastoreService(Service, FilterMixin, SchemaMixin):
             qs = qs.where(and_(*self._filters_to_queryset(filters, table, prefix, aliases)))
 
         if options['count']:
-            return (await self.middleware.call("datastore.fetchall", qs))[0][0]
+            return (await ConnectionDatastoreService.instance.fetchall(qs))[0][0]
 
         order_by = options['order_by']
         if order_by:
@@ -155,7 +156,7 @@ class DatastoreService(Service, FilterMixin, SchemaMixin):
         if options['limit']:
             qs = qs.limit(options['limit'])
 
-        result = await self.middleware.call("datastore.fetchall", qs)
+        result = await ConnectionDatastoreService.instance.fetchall(qs)
 
         relationships = [{} for row in result]
         if options['relationships']:

@@ -10,6 +10,7 @@ from middlewared.async_validators import check_path_resides_within_volume
 from middlewared.validators import Range, NotMatch
 from middlewared.service import private, SharingService, SystemServiceService, ValidationError, ValidationErrors
 import middlewared.sqlalchemy as sa
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.utils.asyncio_ import asyncio_map
 from middlewared.utils.path import is_child
 
@@ -369,7 +370,7 @@ class SharingNFSService(SharingService):
         """
         Delete NFS Share of `id`.
         """
-        await self.middleware.call("datastore.delete", self._config.datastore, id)
+        await DatastoreService.instance.delete(self._config.datastore, id)
         await self._service_change("nfs", "reload")
 
     @private
@@ -554,7 +555,7 @@ async def interface_post_sync(middleware):
         await middleware.call('cache.put', 'interfaces_are_set_up', True)
         filters = [['srv_service', '=', 'nfs']]
         options = {'get': True}
-        nfs = await middleware.call('datastore.query', 'services_services', filters, options)
+        nfs = await DatastoreService.instance.query('services_services', filters, options)
         if nfs['srv_enable'] and any([i['enabled'] for i in await middleware.call('sharing.nfs.query')]):
             if (await middleware.call('nfs.config'))['bindip']:
                 middleware.create_task(middleware.call('service.restart', 'nfs'))

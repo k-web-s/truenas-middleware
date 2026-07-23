@@ -33,6 +33,7 @@ from middlewared.service import (
 from middlewared.service_exception import CallError
 import middlewared.sqlalchemy as sa
 from middlewared.validators import validate_attributes
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.utils import bisect, load_modules, load_classes
 
 POLICIES = ["IMMEDIATELY", "HOURLY", "DAILY", "NEVER"]
@@ -225,7 +226,7 @@ class AlertService(Service):
 
         self.alerts = []
         if load:
-            for alert in await self.middleware.call("datastore.query", "system.alert"):
+            for alert in await DatastoreService.instance.query( "system.alert"):
                 del alert["id"]
 
                 try:
@@ -431,7 +432,7 @@ class AlertService(Service):
         for policy_name, policy in self.policies.items():
             gone_alerts, new_alerts = policy.receive_alerts(now, self.alerts)
 
-            for alert_service_desc in await self.middleware.call("datastore.query", "system.alertservice",
+            for alert_service_desc in await DatastoreService.instance.query( "system.alertservice",
                                                                  [["enabled", "=", True]]):
                 service_level = AlertLevel[alert_service_desc["level"]]
 
@@ -778,13 +779,13 @@ class AlertService(Service):
         ):
             return
 
-        await self.middleware.call("datastore.delete", "system.alert", [])
+        await DatastoreService.instance.delete("system.alert", [])
 
         for alert in self.alerts:
             d = alert.__dict__.copy()
             d["klass"] = d["klass"].name
             del d["mail"]
-            await self.middleware.call("datastore.insert", "system.alert", d)
+            await DatastoreService.instance.insert("system.alert", d)
 
     @private
     @accepts(Str("klass"), Any("args", null=True))
@@ -954,7 +955,7 @@ class AlertServiceService(CRUDService):
         """
         await self._validate(data, "alert_service_create")
 
-        data["id"] = await self.middleware.call("datastore.insert", self._config.datastore, data)
+        data["id"] = await DatastoreService.instance.insert(self._config.datastore, data)
 
         await self._extend(data)
 
@@ -969,7 +970,7 @@ class AlertServiceService(CRUDService):
         """
         Update Alert Service of `id`.
         """
-        old = await self.middleware.call("datastore.query", self._config.datastore, [("id", "=", id)],
+        old = await DatastoreService.instance.query( self._config.datastore, [("id", "=", id)],
                                          {"extend": self._config.datastore_extend,
                                           "get": True})
 
@@ -980,7 +981,7 @@ class AlertServiceService(CRUDService):
 
         await self._compress(new)
 
-        await self.middleware.call("datastore.update", self._config.datastore, id, new)
+        await DatastoreService.instance.update(self._config.datastore, id, new)
 
         await self._extend(new)
 
@@ -991,7 +992,7 @@ class AlertServiceService(CRUDService):
         """
         Delete Alert Service of `id`.
         """
-        return await self.middleware.call("datastore.delete", self._config.datastore, id)
+        return await DatastoreService.instance.delete(self._config.datastore, id)
 
     @accepts(
         Ref('alert_service_create')
@@ -1105,7 +1106,7 @@ class AlertClassesService(ConfigService):
         if verrors:
             raise verrors
 
-        await self.middleware.call("datastore.update", self._config.datastore, old["id"], new)
+        await DatastoreService.instance.update(self._config.datastore, old["id"], new)
 
         return new
 

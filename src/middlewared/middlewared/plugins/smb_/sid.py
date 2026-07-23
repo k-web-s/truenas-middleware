@@ -1,6 +1,7 @@
 from middlewared.service import Service, private
 from middlewared.utils import run
 from middlewared.plugins.smb import SMBCmd
+from middlewared.plugins.datastore.connection import DatastoreService
 
 import re
 
@@ -51,7 +52,7 @@ class SMBService(Service):
 
     @private
     async def set_database_sid(self, SID):
-        await self.middleware.call('datastore.update', 'services.cifs', 1, {'cifs_SID': SID})
+        await DatastoreService.instance.update('services.cifs', 1, {'cifs_SID': SID})
 
     @private
     async def set_system_sid(self, SID):

@@ -1,5 +1,6 @@
 from middlewared.schema import accepts, Bool, Dict, Int, Str, Patch
 from middlewared.service import ValidationErrors, CRUDService, private
+from middlewared.plugins.datastore.connection import DatastoreService
 import middlewared.sqlalchemy as sa
 
 import ntplib
@@ -98,7 +99,7 @@ class NTPServerService(CRUDService):
         """
         Delete NTP server of `id`.
         """
-        response = await self.middleware.call('datastore.delete', self._config.datastore, id)
+        response = await DatastoreService.instance.delete(self._config.datastore, id)
 
         await self.middleware.call('service.restart', 'ntpd')
 

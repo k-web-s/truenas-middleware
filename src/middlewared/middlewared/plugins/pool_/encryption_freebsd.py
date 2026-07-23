@@ -6,6 +6,7 @@ import tempfile
 
 from libzfs import ZFSException
 
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.schema import accepts, Bool, Dict, Int, List, Str
 from middlewared.service import CallError, item_method, job, private, Service, ValidationErrors
 
@@ -22,16 +23,11 @@ class PoolService(Service):
     async def save_encrypteddisks(self, pool_id, enc_disks, disks_cache):
         async with ENCRYPTEDDISK_LOCK:
             for enc_disk in enc_disks:
-                await self.middleware.call(
-                    'datastore.insert',
-                    'storage.encrypteddisk',
-                    {
-                        'volume': pool_id,
-                        'disk': disks_cache[enc_disk['disk']]['identifier'],
-                        'provider': enc_disk['devname'].removeprefix('/dev/'),
-                    },
-                    {'prefix': 'encrypted_'},
-                )
+                await DatastoreService.instance.insert('storage.encrypteddisk', {
+                    'volume': pool_id,
+                    'disk': disks_cache[enc_disk['disk']]['identifier'],
+                    'provider': enc_disk['devname'].removeprefix('/dev/'),
+                }, {'prefix': 'encrypted_'})
 
     @item_method
     @accepts(Int('id'), Dict(
@@ -422,8 +418,8 @@ class PoolService(Service):
 
         await self.middleware.call('zfs.pool.export', pool['name'])
 
-        for ed in await self.middleware.call(
-            'datastore.query', 'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])]
+        for ed in await DatastoreService.instance.query(
+            'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])]
         ):
             await self.middleware.call('disk.geli_detach_single', ed['encrypted_provider'])
 
@@ -464,7 +460,7 @@ class PoolService(Service):
     @private
     async def remove_from_storage_encrypted_disk(self, id_or_filters):
         async with ENCRYPTEDDISK_LOCK:
-            await self.middleware.call('datastore.delete', 'storage.encrypteddisk', id_or_filters)
+            await DatastoreService.instance.delete('storage.encrypteddisk', id_or_filters)
 
     @private
     async def sync_encrypted(self, pool=None):
@@ -495,13 +491,13 @@ class PoolService(Service):
                         continue
                     prov = dev[:-4]
                     diskid = disks.get(disk)
-                    ed = await self.middleware.call('datastore.query', 'storage.encrypteddisk', [
+                    ed = await DatastoreService.instance.query('storage.encrypteddisk', [
                         ('encrypted_provider', '=', prov)
                     ])
                     if not ed:
                         if not diskid:
                             self.logger.warn('Could not find Disk entry for %s', disk)
-                        await self.middleware.call('datastore.insert', 'storage.encrypteddisk', {
+                        await DatastoreService.instance.insert('storage.encrypteddisk', {
                             'encrypted_volume': pool['id'],
                             'encrypted_provider': prov,
                             'encrypted_disk': diskid,
@@ -514,6 +510,6 @@ class PoolService(Service):
                     provs.append(prov)
 
                 # Delete devices no longer in pool from database
-                await self.middleware.call('datastore.delete', 'storage.encrypteddisk', [
+                await DatastoreService.instance.delete('storage.encrypteddisk', [
                     ('encrypted_volume', '=', pool['id']), ('encrypted_provider', 'nin', provs)
                 ])

@@ -3,6 +3,7 @@ from middlewared.service_exception import CallError
 from middlewared.utils import run
 from middlewared.plugins.smb import SMBCmd, SMBSharePreset
 from middlewared.utils import osc
+from middlewared.plugins.datastore.connection import DatastoreService
 
 import errno
 
@@ -241,7 +242,7 @@ class SharingSMBService(Service):
             if data['durablehandle']:
                 self.logger.warn("Disabling durable handle support on SMB share [%s] "
                                  "due to NFS export of same path.", data['name'])
-                await self.middleware.call('datastore.update', 'sharing.cifs_share',
+                await DatastoreService.instance.update('sharing.cifs_share',
                                            data['id'], {'cifs_durablehandle': False})
                 data['durablehandle'] = False
 

@@ -10,6 +10,7 @@ except ImportError:
 import humanfriendly
 
 from middlewared.alert.base import AlertClass, AlertCategory, AlertLevel, Alert, ThreadedAlertSource
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.alert.schedule import IntervalSchedule
 
 logger = logging.getLogger(__name__)
@@ -104,12 +105,11 @@ class QuotaAlertSource(ThreadedAlertSource):
                 owner = self._get_owner(dataset)
                 if owner != 0:
                     try:
-                        bsduser = self.middleware.call_sync(
-                            "datastore.query",
+                        bsduser = self.middleware.run_coroutine(DatastoreService.instance.query(
                             "account.bsdusers",
                             [["bsdusr_uid", "=", owner]],
                             {"get": True},
-                        )
+                        ))
                         to = bsduser["bsdusr_email"] or None
                     except IndexError:
                         logger.debug("Unable to query bsduser with uid %r", owner)

@@ -8,6 +8,7 @@ from bsd import geom
 from middlewared.schema import accepts, Bool, Dict
 from middlewared.service import CallError, private, Service
 from middlewared.utils import run
+from middlewared.plugins.datastore.connection import DatastoreService
 
 from .encryption_base import DiskEncryptionBase
 
@@ -100,9 +101,9 @@ class DiskService(Service, DiskEncryptionBase):
         geli_keyfile_tmp = f'{geli_keyfile}.tmp'
         devs = [
             ed['encrypted_provider']
-            for ed in self.middleware.call_sync(
-                'datastore.query', 'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])]
-            )
+            for ed in self.middleware.run_coroutine(DatastoreService.instance.query(
+                'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])]
+            ))
         ]
 
         # keep track of which device has which key in case something goes wrong
@@ -177,9 +178,9 @@ class DiskService(Service, DiskEncryptionBase):
             passf.flush()
             passphrase = passf.name
         try:
-            for ed in self.middleware.call_sync(
-                    'datastore.query', 'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])]
-            ):
+            for ed in self.middleware.run_coroutine(DatastoreService.instance.query(
+                    'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])]
+            )):
                 dev = ed['encrypted_provider']
                 if rmrecovery:
                     self.geli_delkey(dev, GELI_RECOVERY_SLOT, force=True)
@@ -262,9 +263,9 @@ class DiskService(Service, DiskEncryptionBase):
             passf.flush()
             passphrase = passf.name
         try:
-            for ed in self.middleware.call_sync(
-                'datastore.query', 'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])]
-            ):
+            for ed in self.middleware.run_coroutine(DatastoreService.instance.query(
+                'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])]
+            )):
                 dev = ed['encrypted_provider']
                 try:
                     self.middleware.call_sync('disk.geli_attach_single', dev, geli_keyfile, passphrase)
@@ -278,9 +279,9 @@ class DiskService(Service, DiskEncryptionBase):
 
     @private
     def geli_recoverykey_rm(self, pool):
-        for ed in self.middleware.call_sync(
-                'datastore.query', 'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])]
-        ):
+        for ed in self.middleware.run_coroutine(DatastoreService.instance.query(
+            'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])]
+        )):
             dev = ed['encrypted_provider']
             self.middleware.call_sync('disk.geli_delkey', dev, GELI_RECOVERY_SLOT, True)
 
@@ -292,9 +293,9 @@ class DiskService(Service, DiskEncryptionBase):
             reckey.flush()
 
             errors = []
-            for ed in self.middleware.call_sync(
-                'datastore.query', 'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])]
-            ):
+            for ed in self.middleware.run_coroutine(DatastoreService.instance.query(
+                'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])]
+            )):
                 dev = ed['encrypted_provider']
                 try:
                     self.middleware.call_sync('disk.geli_setkey', dev, reckey_file, GELI_RECOVERY_SLOT)
@@ -334,9 +335,9 @@ class DiskService(Service, DiskEncryptionBase):
     @private
     def geli_detach(self, pool, clear=False):
         failed = 0
-        for ed in self.middleware.call_sync(
-            'datastore.query', 'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])]
-        ):
+        for ed in self.middleware.run_coroutine(DatastoreService.instance.query(
+            'storage.encrypteddisk', [('encrypted_volume', '=', pool['id'])]
+        )):
             dev = ed['encrypted_provider']
             try:
                 self.geli_detach_single(dev)

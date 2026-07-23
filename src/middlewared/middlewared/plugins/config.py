@@ -15,16 +15,19 @@ import middlewared
 from middlewared.schema import Bool, Dict, accepts
 from middlewared.service import CallError, Service, job, private
 from middlewared.plugins.pwenc import PWENC_FILE_SECRET
-from middlewared.plugins.pool import GELI_KEYPATH
 
-CONFIG_FILES = {
-    'pwenc_secret': PWENC_FILE_SECRET,
-    'geli': GELI_KEYPATH,
-    'root_authorized_keys': '/root/.ssh/authorized_keys',
-}
 FREENAS_DATABASE = '/data/freenas-v1.db'
 NEED_UPDATE_SENTINEL = '/data/need-update'
 RE_CONFIG_BACKUP = re.compile(r'.*(\d{4}-\d{2}-\d{2})-(\d+)\.db$')
+
+
+def get_config_files():
+    from middlewared.plugins.pool import GELI_KEYPATH
+    return {
+        'pwenc_secret': PWENC_FILE_SECRET,
+        'geli': GELI_KEYPATH,
+        'root_authorized_keys': '/root/.ssh/authorized_keys',
+    }
 
 
 class ConfigService(Service):
@@ -55,7 +58,7 @@ class ConfigService(Service):
             filename = FREENAS_DATABASE
         else:
             bundle = True
-            files = CONFIG_FILES.copy()
+            files = get_config_files()
             if not options['secretseed']:
                 files['pwenc_secret'] = None
             if not options['root_authorized_keys'] or not os.path.exists(files['root_authorized_keys']):
@@ -183,12 +186,12 @@ class ConfigService(Service):
 
         move(config_file_name, '/data/uploaded.db')
         if bundle:
-            for filename, destination in CONFIG_FILES.items():
+            for filename, destination in get_config_files().items():
                 file_path = os.path.join(tmpdir, filename)
                 if os.path.exists(file_path):
                     if filename == 'geli':
                         # Let's only copy the geli keys and not overwrite the entire directory
-                        os.makedirs(CONFIG_FILES['geli'], exist_ok=True)
+                        os.makedirs(get_config_files()['geli'], exist_ok=True)
                         for key_path in os.listdir(file_path):
                             move(
                                 os.path.join(file_path, key_path), os.path.join(destination, key_path)

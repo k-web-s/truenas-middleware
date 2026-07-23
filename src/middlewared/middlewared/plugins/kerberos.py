@@ -14,6 +14,7 @@ from middlewared.service import CallError, ConfigService, CRUDService, job, peri
 import middlewared.sqlalchemy as sa
 from middlewared.utils import run, Popen
 import middlewared.utils.osc as osc
+from middlewared.plugins.datastore.connection import DatastoreService
 
 
 class keytab(enum.Enum):
@@ -139,8 +140,7 @@ class KerberosService(ConfigService):
         if verrors:
             raise verrors
 
-        await self.middleware.call(
-            'datastore.update',
+        await DatastoreService.instance.update(
             self._config.datastore,
             old['id'],
             new,
@@ -724,8 +724,7 @@ class KerberosRealmService(CRUDService):
         new.update(data)
 
         data = await self.kerberos_compress(new)
-        await self.middleware.call(
-            'datastore.update',
+        await DatastoreService.instance.update(
             self._config.datastore,
             id,
             new,
@@ -740,7 +739,7 @@ class KerberosRealmService(CRUDService):
         """
         Delete a kerberos realm by ID.
         """
-        await self.middleware.call("datastore.delete", self._config.datastore, id)
+        await DatastoreService.instance.delete(self._config.datastore, id)
         await self.middleware.call('etc.generate', 'kerberos')
 
     @private
@@ -825,8 +824,7 @@ class KerberosKeytabService(CRUDService):
         if verrors:
             raise verrors
 
-        await self.middleware.call(
-            'datastore.update',
+        await DatastoreService.instance.update(
             self._config.datastore,
             id,
             new,
@@ -850,7 +848,7 @@ class KerberosKeytabService(CRUDService):
                     'the Active Directory service is enabled.'
                 )
 
-        await self.middleware.call("datastore.delete", self._config.datastore, id)
+        await DatastoreService.instance.delete(self._config.datastore, id)
         if os.path.exists(keytab['SYSTEM'].value):
             os.remove(keytab['SYSTEM'].value)
         await self.middleware.call('etc.generate', 'kerberos')
@@ -893,16 +891,14 @@ class KerberosKeytabService(CRUDService):
         ad = await self.middleware.call('activedirectory.config')
         ldap = await self.middleware.call('ldap.config')
         if ad['kerberos_principal'] and ad['kerberos_principal'] not in principal_choices:
-            await self.middleware.call(
-                'datastore.update',
+            await DatastoreService.instance.update(
                 'directoryservice.activedirectory',
                 ad['id'],
                 {'kerberos_principal': ''},
                 {'prefix': 'ad_'}
             )
         if ldap['kerberos_principal'] and ldap['kerberos_principal'] not in principal_choices:
-            await self.middleware.call(
-                'datastore.update',
+            await DatastoreService.instance.update(
                 'directoryservice.ldap',
                 ldap['id'],
                 {'kerberos_principal': ''},
@@ -1158,7 +1154,7 @@ class KerberosKeytabService(CRUDService):
         else:
             id = entry[0]['id']
             updated_entry = {'keytab_name': 'AD_MACHINE_ACCOUNT', 'keytab_file': keytab_file}
-            await self.middleware.call('datastore.update', 'directoryservice.kerberoskeytab', id, updated_entry)
+            await DatastoreService.instance.update('directoryservice.kerberoskeytab', id, updated_entry)
 
         sambakt = await self.query([('name', '=', 'AD_MACHINE_ACCOUNT')])
         if sambakt:

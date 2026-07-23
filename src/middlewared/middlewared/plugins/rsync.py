@@ -33,6 +33,7 @@ import os
 import shlex
 
 from middlewared.common.attachment import LockableFSAttachmentDelegate
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.schema import accepts, Bool, Cron, Dict, Str, Int, List, Patch
 from middlewared.validators import Range, Match
 from middlewared.service import (
@@ -252,7 +253,7 @@ class RsyncModService(SharingService):
         """
         Delete Rsyncmod module of `id`.
         """
-        return await self.middleware.call('datastore.delete', self._config.datastore, id)
+        return await DatastoreService.instance.delete(self._config.datastore, id)
 
 
 class RsyncTaskModel(sa.Model):
@@ -624,7 +625,7 @@ class RsyncTaskService(TaskPathService):
         """
         Delete Rsync Task of `id`.
         """
-        res = await self.middleware.call('datastore.delete', self._config.datastore, id)
+        res = await DatastoreService.instance.delete(self._config.datastore, id)
         await self.middleware.call('service.restart', 'cron')
         return res
 

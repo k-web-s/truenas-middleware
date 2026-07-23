@@ -4,6 +4,7 @@ from middlewared.utils import filter_list, run
 from middlewared.schema import (Bool, Dict, Int, IPAddr, List, Patch, Ref, Str,
                                 ValidationErrors, accepts)
 import middlewared.sqlalchemy as sa
+from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.utils import osc
 from middlewared.utils.generate import random_string
 from middlewared.validators import Hostname, Match, Range
@@ -539,7 +540,7 @@ class InterfaceService(CRUDService):
         data = {}
         configs = {
             i['int_interface']: i
-            for i in self.middleware.call_sync('datastore.query', 'network.interfaces')
+            for i in self.middleware.run_coroutine(DatastoreService.instance.query('network.interfaces'))
         }
         is_freenas = self.middleware.call_sync('system.is_freenas')
         if not is_freenas:
@@ -650,42 +651,38 @@ class InterfaceService(CRUDService):
                 })
 
         if itype == InterfaceType.BRIDGE:
-            bridge = self.middleware.call_sync(
-                'datastore.query',
+            bridge = self.middleware.run_coroutine(DatastoreService.instance.query(
                 'network.bridge',
                 [('interface', '=', config['id'])],
-            )
+            ))
             if bridge:
                 bridge = bridge[0]
                 iface.update({'bridge_members': bridge['members']})
             else:
                 iface.update({'bridge_members': []})
         elif itype == InterfaceType.LINK_AGGREGATION:
-            lag = self.middleware.call_sync(
-                'datastore.query',
+            lag = self.middleware.run_coroutine(DatastoreService.instance.query(
                 'network.lagginterface',
                 [('interface', '=', config['id'])],
                 {'prefix': 'lagg_'}
-            )
+            ))
             if lag:
                 lag = lag[0]
                 iface.update({'lag_protocol': lag['protocol'].upper(), 'lag_ports': []})
-                for port in self.middleware.call_sync(
-                    'datastore.query',
+                for port in self.middleware.run_coroutine(DatastoreService.instance.query(
                     'network.lagginterfacemembers',
                     [('interfacegroup', '=', lag['id'])],
                     {'prefix': 'lagg_'}
-                ):
+                )):
                     iface['lag_ports'].append(port['physnic'])
             else:
                 iface['lag_ports'] = []
         elif itype == InterfaceType.VLAN:
-            vlan = self.middleware.call_sync(
-                'datastore.query',
+            vlan = self.middleware.run_coroutine(DatastoreService.instance.query(
                 'network.vlan',
                 [('vint', '=', iface['name'])],
                 {'prefix': 'vlan_'}
-            )
+            ))
             if vlan:
                 vlan = vlan[0]
                 iface.update({
@@ -716,7 +713,7 @@ class InterfaceService(CRUDService):
                 })
 
         filters = [('alias_interface', '=', config['id'])]
-        for alias in self.middleware.call_sync('datastore.query', 'network.alias', filters):
+        for alias in self.middleware.run_coroutine(DatastoreService.instance.query('network.alias', filters)):
 
             if alias['alias_v4address']:
                 iface['aliases'].append({
@@ -753,30 +750,30 @@ class InterfaceService(CRUDService):
         """
         if self._original_datastores:
             return
-        self._original_datastores['interfaces'] = await self.middleware.call(
-            'datastore.query', 'network.interfaces'
+        self._original_datastores['interfaces'] = await DatastoreService.instance.query(
+            'network.interfaces'
         )
         self._original_datastores['alias'] = []
-        for i in await self.middleware.call('datastore.query', 'network.alias'):
+        for i in await DatastoreService.instance.query('network.alias'):
             i['alias_interface'] = i['alias_interface']['id']
             self._original_datastores['alias'].append(i)
 
         self._original_datastores['bridge'] = []
-        for i in await self.middleware.call('datastore.query', 'network.bridge'):
+        for i in await DatastoreService.instance.query('network.bridge'):
             i['interface'] = i['interface']['id'] if i['interface'] else None
             self._original_datastores['bridge'].append(i)
 
-        self._original_datastores['vlan'] = await self.middleware.call(
-            'datastore.query', 'network.vlan'
+        self._original_datastores['vlan'] = await DatastoreService.instance.query(
+            'network.vlan'
         )
 
         self._original_datastores['lagg'] = []
-        for i in await self.middleware.call('datastore.query', 'network.lagginterface'):
+        for i in await DatastoreService.instance.query('network.lagginterface'):
             i['lagg_interface'] = i['lagg_interface']['id']
             self._original_datastores['lagg'].append(i)
 
         self._original_datastores['laggmembers'] = []
-        for i in await self.middleware.call('datastore.query', 'network.lagginterfacemembers'):
+        for i in await DatastoreService.instance.query('network.lagginterfacemembers'):
             i['lagg_interfacegroup'] = i['lagg_interfacegroup']['id']
             self._original_datastores['laggmembers'].append(i)
 
@@ -786,28 +783,28 @@ class InterfaceService(CRUDService):
 
         # Deleting network.lagginterface because deleting network.interfaces won't cascade
         # (but network.lagginterface will cascade to network.lagginterfacemembers)
-        await self.middleware.call('datastore.delete', 'network.lagginterface', [])
+        await DatastoreService.instance.delete('network.lagginterface', [])
         # Deleting interfaces should cascade to network.alias and network.bridge
-        await self.middleware.call('datastore.delete', 'network.interfaces', [])
-        await self.middleware.call('datastore.delete', 'network.vlan', [])
+        await DatastoreService.instance.delete('network.interfaces', [])
+        await DatastoreService.instance.delete('network.vlan', [])
 
         for i in self._original_datastores['interfaces']:
-            await self.middleware.call('datastore.insert', 'network.interfaces', i)
+            await DatastoreService.instance.insert('network.interfaces', i)
 
         for i in self._original_datastores['alias']:
-            await self.middleware.call('datastore.insert', 'network.alias', i)
+            await DatastoreService.instance.insert('network.alias', i)
 
         for i in self._original_datastores['bridge']:
-            await self.middleware.call('datastore.insert', 'network.bridge', i)
+            await DatastoreService.instance.insert('network.bridge', i)
 
         for i in self._original_datastores['vlan']:
-            await self.middleware.call('datastore.insert', 'network.vlan', i)
+            await DatastoreService.instance.insert('network.vlan', i)
 
         for i in self._original_datastores['lagg']:
-            await self.middleware.call('datastore.insert', 'network.lagginterface', i)
+            await DatastoreService.instance.insert('network.lagginterface', i)
 
         for i in self._original_datastores['laggmembers']:
-            await self.middleware.call('datastore.insert', 'network.lagginterfacemembers', i)
+            await DatastoreService.instance.insert('network.lagginterfacemembers', i)
 
         self._original_datastores.clear()
 
@@ -990,17 +987,11 @@ class InterfaceService(CRUDService):
                 }):
                     interface_id = i
 
-                await self.middleware.call(
-                    'datastore.insert',
-                    'network.bridge',
-                    {'interface': interface_id, 'members': data['bridge_members']},
-                )
+                await DatastoreService.instance.insert('network.bridge', {'interface': interface_id, 'members': data['bridge_members']})
             except Exception:
                 if interface_id:
                     with contextlib.suppress(Exception):
-                        await self.middleware.call(
-                            'datastore.delete', 'network.interfaces', interface_id
-                        )
+                            await DatastoreService.instance.delete('network.interfaces', interface_id)
                 raise
         elif data['type'] == 'LINK_AGGREGATION':
             name = data.get('name') or await self.middleware.call('interface.get_next_name',
@@ -1013,23 +1004,15 @@ class InterfaceService(CRUDService):
                 }):
                     interface_id = i
 
-                lag_id = await self.middleware.call(
-                    'datastore.insert',
-                    'network.lagginterface',
-                    {'lagg_interface': interface_id, 'lagg_protocol': data['lag_protocol'].lower()},
-                )
+                lag_id = await DatastoreService.instance.insert('network.lagginterface', {'lagg_interface': interface_id, 'lagg_protocol': data['lag_protocol'].lower()})
                 lagports_ids += await self.__set_lag_ports(lag_id, data['lag_ports'])
             except Exception:
                 if lag_id:
                     with contextlib.suppress(Exception):
-                        await self.middleware.call(
-                            'datastore.delete', 'network.lagginterface', lag_id
-                        )
+                        await DatastoreService.instance.delete('network.lagginterface', lag_id)
                 if interface_id:
                     with contextlib.suppress(Exception):
-                        await self.middleware.call(
-                            'datastore.delete', 'network.interfaces', interface_id
-                        )
+                        await DatastoreService.instance.delete('network.interfaces', interface_id)
                 raise
         elif data['type'] == 'VLAN':
             name = data.get('name') or await self.middleware.call('interface.get_next_name', InterfaceType.VLAN)
@@ -1038,23 +1021,16 @@ class InterfaceService(CRUDService):
                     'interface': name,
                 }):
                     interface_id = i
-                await self.middleware.call(
-                    'datastore.insert',
-                    'network.vlan',
-                    {
-                        'vint': name,
-                        'pint': data['vlan_parent_interface'],
-                        'tag': data['vlan_tag'],
-                        'pcp': data.get('vlan_pcp'),
-                    },
-                    {'prefix': 'vlan_'},
-                )
+                await DatastoreService.instance.insert('network.vlan', {
+                    'vint': name,
+                    'pint': data['vlan_parent_interface'],
+                    'tag': data['vlan_tag'],
+                    'pcp': data.get('vlan_pcp'),
+                }, {'prefix': 'vlan_'})
             except Exception:
                 if interface_id:
                     with contextlib.suppress(Exception):
-                        await self.middleware.call(
-                            'datastore.delete', 'network.interfaces', interface_id
-                        )
+                        await DatastoreService.instance.delete('network.interfaces', interface_id)
                 raise
 
         if data.get('disable_offload_capabilities'):
@@ -1067,8 +1043,7 @@ class InterfaceService(CRUDService):
         number = start
         ifaces = [
             i['int_interface']
-            for i in await self.middleware.call(
-                'datastore.query',
+            for i in await DatastoreService.instance.query(
                 'network.interfaces',
                 [('int_interface', '^', prefix)],
             )
@@ -1383,21 +1358,11 @@ class InterfaceService(CRUDService):
         interface_attrs, aliases = self.__convert_aliases_to_datastore(data)
         interface_attrs.update(attrs)
 
-        interface_id = await self.middleware.call(
-            'datastore.insert',
-            'network.interfaces',
-            dict(**(await self.__convert_interface_datastore(data)), **interface_attrs),
-            {'prefix': 'int_'},
-        )
+        interface_id = await DatastoreService.instance.insert('network.interfaces', dict(**(await self.__convert_interface_datastore(data)), **interface_attrs), {'prefix': 'int_'})
         yield interface_id
 
         for alias in aliases.values():
-            await self.middleware.call(
-                'datastore.insert',
-                'network.alias',
-                dict(interface=interface_id, **alias),
-                {'prefix': 'alias_'},
-            )
+            await DatastoreService.instance.insert('network.alias', dict(interface=interface_id, **alias), {'prefix': 'alias_'})
 
     def __convert_aliases_to_datastore(self, data):
         iface = {
@@ -1453,20 +1418,14 @@ class InterfaceService(CRUDService):
         lagports_ids = []
         for idx, i in enumerate(lag_ports):
             lagports_ids.append(
-                await self.middleware.call(
-                    'datastore.insert',
-                    'network.lagginterfacemembers',
-                    {'interfacegroup': lag_id, 'ordernum': idx, 'physnic': i},
-                    {'prefix': 'lagg_'},
-                )
+                await DatastoreService.instance.insert('network.lagginterfacemembers', {'interfacegroup': lag_id, 'ordernum': idx, 'physnic': i}, {'prefix': 'lagg_'})
             )
 
             """
             If the link aggregation member was configured we need to reset it,
             including removing all its IP addresses.
             """
-            portinterface = await self.middleware.call(
-                'datastore.query',
+            portinterface = await DatastoreService.instance.query(
                 'network.interfaces',
                 [('interface', '=', i)],
                 {'prefix': 'int_'},
@@ -1494,8 +1453,7 @@ class InterfaceService(CRUDService):
                     portinterface,
                     {'prefix': 'int_'},
                 )
-                await self.middleware.call(
-                    'datastore.delete',
+                await DatastoreService.instance.delete(
                     'network.alias',
                     [('alias_interface', '=', portinterface['id'])],
                 )
@@ -1542,16 +1500,16 @@ class InterfaceService(CRUDService):
         interface_id = None
         try:
 
-            config = await self.middleware.call(
-                'datastore.query', 'network.interfaces', [('int_interface', '=', oid)]
+            config = await DatastoreService.instance.query(
+                'network.interfaces', [('int_interface', '=', oid)]
             )
             if not config:
                 async for i in self.__create_interface_datastore(new, {
                     'interface': iface['name'],
                 }):
                     interface_id = i
-                config = (await self.middleware.call(
-                    'datastore.query', 'network.interfaces', [('id', '=', interface_id)]
+                config = (await DatastoreService.instance.query(
+                    'network.interfaces', [('id', '=', interface_id)]
                 ))[0]
             else:
                 interface_attrs, aliases = self.__convert_aliases_to_datastore(new)
@@ -1592,8 +1550,7 @@ class InterfaceService(CRUDService):
                     {'lagg_protocol': new['lag_protocol'].lower()},
                 )
                 if 'lag_ports' in data:
-                    await self.middleware.call(
-                        'datastore.delete',
+                    await DatastoreService.instance.delete(
                         'network.lagginterfacemembers',
                         [('lagg_interfacegroup', '=', lag_id)],
                     )
@@ -1624,8 +1581,7 @@ class InterfaceService(CRUDService):
                 old_aliases = set()
                 alias_ids = {}
                 if config:
-                    for i in await self.middleware.call(
-                        'datastore.query',
+                    for i in await DatastoreService.instance.query(
                         'network.alias',
                         [('interface', '=', config['id'])],
                         {'prefix': 'alias_'},
@@ -1644,24 +1600,17 @@ class InterfaceService(CRUDService):
                 new_aliases = set(aliases.keys())
                 for i in new_aliases - old_aliases:
                     alias = aliases[i]
-                    await self.middleware.call(
-                        'datastore.insert',
-                        'network.alias',
-                        dict(interface=config['id'], **alias),
-                        {'prefix': 'alias_'}
-                    )
+                    await DatastoreService.instance.insert('network.alias', dict(interface=config['id'], **alias), {'prefix': 'alias_'})
 
                 for i in old_aliases - new_aliases:
                     alias_id = alias_ids.get(i)
                     if alias_id:
-                        await self.middleware.call('datastore.delete', 'network.alias', alias_id)
+                        await DatastoreService.instance.delete('network.alias', alias_id)
 
         except Exception:
             if interface_id:
                 with contextlib.suppress(Exception):
-                    await self.middleware.call(
-                        'datastore.delete', 'network.interfaces', interface_id
-                    )
+                    await DatastoreService.instance.delete('network.interfaces', interface_id)
             raise
 
         if new.get('disable_offload_capabilities') != iface.get('disable_offload_capabilities'):
@@ -1720,25 +1669,25 @@ class InterfaceService(CRUDService):
 
     @private
     async def delete_network_interface(self, oid):
-        for lagg in await self.middleware.call(
-            'datastore.query', 'network.lagginterface', [('lagg_interface__int_interface', '=', oid)]
+        for lagg in await DatastoreService.instance.query(
+            'network.lagginterface', [('lagg_interface__int_interface', '=', oid)]
         ):
-            for lagg_member in await self.middleware.call(
-                'datastore.query', 'network.lagginterfacemembers', [('lagg_interfacegroup', '=', lagg['id'])]
+            for lagg_member in await DatastoreService.instance.query(
+                'network.lagginterfacemembers', [('lagg_interfacegroup', '=', lagg['id'])]
             ):
                 await self.delete_network_interface(lagg_member['lagg_physnic'])
 
-            await self.middleware.call('datastore.delete', 'network.lagginterface', lagg['id'])
+            await DatastoreService.instance.delete('network.lagginterface', lagg['id'])
 
-        await self.middleware.call(
-            'datastore.delete', 'network.vlan', [('vlan_pint', '=', oid)]
+        await DatastoreService.instance.delete(
+            'network.vlan', [('vlan_pint', '=', oid)]
         )
-        await self.middleware.call(
-            'datastore.delete', 'network.vlan', [('vlan_vint', '=', oid)]
+        await DatastoreService.instance.delete(
+            'network.vlan', [('vlan_vint', '=', oid)]
         )
 
-        await self.middleware.call(
-            'datastore.delete', 'network.interfaces', [('int_interface', '=', oid)]
+        await DatastoreService.instance.delete(
+            'network.interfaces', [('int_interface', '=', oid)]
         )
 
         return oid
@@ -1938,7 +1887,7 @@ class InterfaceService(CRUDService):
                 'interface.query', [['disable_offload_capabilities', '=', True]]
             )
         }
-        interfaces = [i['int_interface'] for i in (await self.middleware.call('datastore.query', 'network.interfaces'))]
+        interfaces = [i['int_interface'] for i in (await DatastoreService.instance.query('network.interfaces'))]
         cloned_interfaces = []
         parent_interfaces = []
         sync_interface_opts = defaultdict(dict)
@@ -1950,10 +1899,10 @@ class InterfaceService(CRUDService):
 
         # First of all we need to create the virtual interfaces
         # LAGG comes first and then VLAN
-        laggs = await self.middleware.call('datastore.query', 'network.lagginterface')
+        laggs = await DatastoreService.instance.query('network.lagginterface')
         for lagg in laggs:
             name = lagg['lagg_interface']['int_interface']
-            members = await self.middleware.call('datastore.query', 'network.lagginterfacemembers',
+            members = await DatastoreService.instance.query('network.lagginterfacemembers',
                                                  [('lagg_interfacegroup_id', '=', lagg['id'])],
                                                  {'order_by': ['lagg_physnic']})
             disable_capabilities = name in disable_capabilities_ifaces
@@ -1962,14 +1911,14 @@ class InterfaceService(CRUDService):
             await self.middleware.call('interface.lag_setup', lagg, members, disable_capabilities,
                                        parent_interfaces, sync_interface_opts)
 
-        vlans = await self.middleware.call('datastore.query', 'network.vlan')
+        vlans = await DatastoreService.instance.query('network.vlan')
         for vlan in vlans:
             disable_capabilities = vlan['vlan_vint'] in disable_capabilities_ifaces
 
             cloned_interfaces.append(vlan['vlan_vint'])
             await self.middleware.call('interface.vlan_setup', vlan, disable_capabilities, parent_interfaces)
 
-        bridges = await self.middleware.call('datastore.query', 'network.bridge')
+        bridges = await DatastoreService.instance.query('network.bridge')
         # Considering a scenario where we have the network configuration
         # physical iface -> vlan -> bridge
         # If all these interfaces are set to have 9000 MTU, we won't be able to set that up on boot
@@ -2049,15 +1998,15 @@ class InterfaceService(CRUDService):
         options = options or {}
 
         try:
-            data = await self.middleware.call(
-                'datastore.query', 'network.interfaces', [('int_interface', '=', name)], {'get': True}
+            data = await DatastoreService.instance.query(
+                'network.interfaces', [('int_interface', '=', name)], {'get': True}
             )
         except IndexError:
             self.logger.info('{} is not in interfaces database'.format(name))
             return
 
-        aliases = await self.middleware.call(
-            'datastore.query', 'network.alias', [('alias_interface_id', '=', data['id'])]
+        aliases = await DatastoreService.instance.query(
+            'network.alias', [('alias_interface_id', '=', data['id'])]
         )
 
         await self.middleware.call('interface.configure', data, aliases, wait_dhcp, options)
@@ -2172,7 +2121,7 @@ class RouteService(Service):
 
     @private
     async def sync(self):
-        config = await self.middleware.call('datastore.query', 'network.globalconfiguration', [], {'get': True})
+        config = await DatastoreService.instance.query('network.globalconfiguration', [], {'get': True})
 
         # Generate dhclient.conf so we can ignore routes (def gw) option
         # in case there is one explictly set in network config
@@ -2180,7 +2129,7 @@ class RouteService(Service):
 
         ipv4_gateway = config['gc_ipv4gateway'] or None
         if not ipv4_gateway:
-            interfaces = await self.middleware.call('datastore.query', 'network.interfaces')
+            interfaces = await DatastoreService.instance.query('network.interfaces')
             if interfaces:
                 interfaces = [interface['int_interface'] for interface in interfaces if interface['int_dhcp']]
             else:
@@ -2246,8 +2195,8 @@ class RouteService(Service):
             # If there is no gateway in database but one is configured
             # remove it
             interface = routing_table.default_route_ipv6.interface
-            autoconfigured_interface = await self.middleware.call(
-                'datastore.query', 'network.interfaces', [
+            autoconfigured_interface = await DatastoreService.instance.query(
+                'network.interfaces', [
                     ['int_interface', '=', interface],
                     ['int_ipv6auto', '=', True],
                 ]
@@ -2364,9 +2313,7 @@ class StaticRouteService(CRUDService):
 
         await self.lower(data)
 
-        id = await self.middleware.call(
-            'datastore.insert', self._config.datastore, data,
-            {'prefix': self._config.datastore_prefix})
+        id = await DatastoreService.instance.insert(self._config.datastore, data, {'prefix': self._config.datastore_prefix})
 
         await self.middleware.call('etc.generate', 'rc')
         await self.middleware.call('service.restart', 'routing')
@@ -2407,7 +2354,7 @@ class StaticRouteService(CRUDService):
         Delete Static Route of `id`.
         """
         staticroute = self.middleware.call_sync('staticroute._get_instance', id)
-        rv = self.middleware.call_sync('datastore.delete', self._config.datastore, id)
+        rv = self.middleware.run_coroutine(DatastoreService.instance.delete(self._config.datastore, id))
         try:
             ip_interface = ipaddress.ip_interface(staticroute['destination'])
             rt = netif.RoutingTable()
@@ -2468,7 +2415,7 @@ class DNSService(Service):
         domain = ''
         domains = []
         nameservers = []
-        gc = self.middleware.call_sync('datastore.query', 'network.globalconfiguration')[0]
+        gc = self.middleware.run_coroutine(DatastoreService.instance.query('network.globalconfiguration'))[0]
         if gc['gc_domain']:
             domain = gc['gc_domain']
         if gc['gc_domains']:
@@ -2507,7 +2454,7 @@ class DNSService(Service):
             # check to see if dhcp is running on any of the interfaces
             # and if there are, then check dhclient leases file for
             # nameservers that were handed to us via dhcp
-            interfaces = self.middleware.call_sync('datastore.query', 'network.interfaces')
+            interfaces = self.middleware.run_coroutine(DatastoreService.instance.query('network.interfaces'))
             if interfaces:
                 interfaces = [i['int_interface'] for i in interfaces if i['int_dhcp']]
             else:

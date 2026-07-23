@@ -7,6 +7,7 @@ from middlewared.service import CallError, CRUDService, item_method, private, Va
 import middlewared.sqlalchemy as sa
 from middlewared.utils.path import is_child
 from middlewared.validators import ReplicationSnapshotNamingSchema
+from middlewared.plugins.datastore.connection import DatastoreService
 
 
 class PeriodicSnapshotTaskModel(sa.Model):
@@ -225,8 +226,7 @@ class PeriodicSnapshotTaskService(CRUDService):
         for key in ('vmware_sync', 'state'):
             new.pop(key, None)
 
-        await self.middleware.call(
-            'datastore.update',
+        await DatastoreService.instance.update(
             self._config.datastore,
             id,
             new,
@@ -270,8 +270,7 @@ class PeriodicSnapshotTaskService(CRUDService):
                         f'first.',
                     )
 
-        response = await self.middleware.call(
-            'datastore.delete',
+        response = await DatastoreService.instance.delete(
             self._config.datastore,
             id
         )
@@ -333,13 +332,13 @@ class PeriodicSnapshotTaskFSAttachmentDelegate(FSAttachmentDelegate):
 
     async def delete(self, attachments):
         for attachment in attachments:
-            await self.middleware.call('datastore.delete', 'storage.task', attachment['id'])
+            await DatastoreService.instance.delete('storage.task', attachment['id'])
 
         await self.middleware.call('zettarepl.update_tasks')
 
     async def toggle(self, attachments, enabled):
         for attachment in attachments:
-            await self.middleware.call('datastore.update', 'storage.task', attachment['id'], {'task_enabled': enabled})
+            await DatastoreService.instance.update('storage.task', attachment['id'], {'task_enabled': enabled})
 
         await self.middleware.call('zettarepl.update_tasks')
 
