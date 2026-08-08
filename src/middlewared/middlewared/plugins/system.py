@@ -13,6 +13,18 @@ from middlewared.utils import Popen, run, start_daemon_thread, sw_buildtime, sw_
 from middlewared.utils.license import LICENSE_ADDHW_MAPPING
 from middlewared.validators import Range
 
+from middlewared.plugins.cache import CacheService
+from middlewared.plugins.crypto import CertificateService, CertificateAuthorityService
+from middlewared.plugins.datastore.connection import DatastoreService
+from middlewared.plugins.etc import EtcService
+from middlewared.plugins.kmip.sed_keys import KMIPService
+from middlewared.plugins.network import InterfaceService
+from middlewared.plugins.pool import PoolService
+from middlewared.plugins.service import ServiceService
+from middlewared.plugins.sysdataset import SystemDatasetService
+from middlewared.plugins.update import UpdateService
+from middlewared.plugins.zettarepl import ZettareplService
+
 import ntplib
 import csv
 import io
@@ -140,7 +152,7 @@ class SystemAdvancedService(ConfigService):
         for k in filter(lambda k: data[k], ['syslog_tls_certificate_authority', 'syslog_tls_certificate']):
             data[k] = data[k]['id']
 
-        if data['swapondrive'] and (await self.middleware.call('system.product_type')) == 'ENTERPRISE':
+        if data['swapondrive'] and (await SystemService.instance.product_type()) == 'ENTERPRISE':
             data['swapondrive'] = 0
 
         data.pop('sed_passwd')
@@ -193,18 +205,15 @@ class SystemAdvancedService(ConfigService):
                 verrors.add(
                     f'{schema}.syslog_tls_certificate_authority', 'This is required when using TLS as syslog transport'
                 )
-            ca_cert = await self.middleware.call(
-                'certificateauthority.query', [['id', '=', data['syslog_tls_certificate_authority']]]
-            )
+            ca_cert = await CertificateAuthorityService.instance.query([['id', '=', data['syslog_tls_certificate_authority']]])
             if not ca_cert:
                 verrors.add(f'{schema}.syslog_tls_certificate_authority', 'Unable to locate specified CA')
             elif ca_cert[0]['revoked']:
                 verrors.add(f'{schema}.syslog_tls_certificate_authority', 'Specified CA has been revoked')
 
             if data['syslog_tls_certificate']:
-                verrors.extend(await self.middleware.call(
-                    'certificate.cert_services_validation', data['syslog_tls_certificate'],
-                    f'{schema}.syslog_tls_certificate', False
+                verrors.extend(await CertificateService.instance.cert_services_validation(
+                    data['syslog_tls_certificate'], f'{schema}.syslog_tls_certificate', False
                 ))
 
         return verrors, data
@@ -269,14 +278,13 @@ class SystemAdvancedService(ConfigService):
                 config_data['sed_user'] = config_data['sed_user'].lower()
             if not config_data['sed_passwd'] and config_data['sed_passwd'] != original_data['sed_passwd']:
                 # We want to make sure kmip uid is None in this case
-                adv_config = await self.middleware.call('datastore.config', self._config.datastore)
+                adv_config = await DatastoreService.instance.config(self._config.datastore)
                 self.middleware.create_task(
-                    self.middleware.call('kmip.reset_sed_global_password', adv_config['adv_kmip_uid'])
+                    KMIPService.instance.reset_sed_global_password(adv_config['adv_kmip_uid'])
                 )
                 config_data['kmip_uid'] = None
 
-            await self.middleware.call(
-                'datastore.update',
+            await DatastoreService.instance.update(
                 self._config.datastore,
                 config_data['id'],
                 config_data,
@@ -284,48 +292,48 @@ class SystemAdvancedService(ConfigService):
             )
 
             if original_data['boot_scrub'] != config_data['boot_scrub']:
-                await self.middleware.call('service.restart', 'cron')
+                await ServiceService.instance.restart('cron')
 
             loader_reloaded = False
             if original_data['motd'] != config_data['motd']:
-                await self.middleware.call('service.start', 'motd')
+                await ServiceService.instance.start('motd')
 
             if original_data['consolemenu'] != config_data['consolemenu']:
-                await self.middleware.call('service.start', 'ttys')
+                await ServiceService.instance.start('ttys')
 
             if original_data['powerdaemon'] != config_data['powerdaemon']:
-                await self.middleware.call('service.restart', 'powerd')
+                await ServiceService.instance.restart('powerd')
 
             if original_data['serialconsole'] != config_data['serialconsole']:
-                await self.middleware.call('service.start', 'ttys')
+                await ServiceService.instance.start('ttys')
                 if not loader_reloaded:
-                    await self.middleware.call('service.reload', 'loader')
+                    await ServiceService.instance.reload('loader')
                     loader_reloaded = True
                 if osc.IS_LINUX:
-                    await self.middleware.call('etc.generate', 'grub')
+                    await EtcService.instance.generate('grub')
             elif (
                 original_data['serialspeed'] != config_data['serialspeed'] or
                 original_data['serialport'] != config_data['serialport']
             ):
                 if not loader_reloaded:
-                    await self.middleware.call('service.reload', 'loader')
+                    await ServiceService.instance.reload('loader')
                     loader_reloaded = True
 
             if original_data['autotune'] != config_data['autotune']:
                 if not loader_reloaded:
-                    await self.middleware.call('service.reload', 'loader')
+                    await ServiceService.instance.reload('loader')
                     loader_reloaded = True
-                await self.middleware.call('system.advanced.autotune', 'loader')
-                await self.middleware.call('system.advanced.autotune', 'sysctl')
+                await self.middleware.run_in_thread(self.autotune, 'loader')
+                await self.middleware.run_in_thread(self.autotune, 'sysctl')
 
             if (
                 original_data['debugkernel'] != config_data['debugkernel'] and
                 not loader_reloaded
             ):
-                await self.middleware.call('service.reload', 'loader')
+                await ServiceService.instance.reload('loader')
 
             if original_data['fqdn_syslog'] != config_data['fqdn_syslog']:
-                await self.middleware.call('service.restart', 'syslogd')
+                await ServiceService.instance.restart('syslogd')
 
             if (
                 original_data['sysloglevel'].lower() != config_data['sysloglevel'].lower() or
@@ -334,10 +342,7 @@ class SystemAdvancedService(ConfigService):
                 original_data['syslog_tls_certificate'] != config_data['syslog_tls_certificate'] or
                 original_data['syslog_tls_certificate_authority'] != config_data['syslog_tls_certificate_authority']
             ):
-                await self.middleware.call('service.restart', 'syslogd')
-
-            if config_data['sed_passwd'] and original_data['sed_passwd'] != config_data['sed_passwd']:
-                await self.middleware.call('kmip.sync_sed_keys')
+                await ServiceService.instance.restart('syslogd')
 
         return await self.config()
 
@@ -346,16 +351,14 @@ class SystemAdvancedService(ConfigService):
         """
         Returns configured global SED password.
         """
-        passwd = (await self.middleware.call(
-            'datastore.config', 'system.advanced', {'prefix': self._config.datastore_prefix}
-        ))['sed_passwd']
-        return passwd if passwd else await self.middleware.call('kmip.sed_global_password')
+        passwd = (await DatastoreService.instance.config('system.advanced', {'prefix': self._config.datastore_prefix}))['sed_passwd']
+        return passwd if passwd else await KMIPService.instance.sed_global_password()
 
     @private
     def autotune(self, conf='loader'):
         if b'/' not in subprocess.run(['whereis', 'autotune'], capture_output=True).stdout:
             return
-        if self.middleware.call_sync('system.product_type') == 'CORE':
+        if self.middleware.run_coroutine(SystemService.instance.product_type()) == 'CORE':
             kernel_reserved = 1073741824
             userland_reserved = 2417483648
         else:
@@ -396,7 +399,7 @@ class SystemService(Service):
     async def birthday(self):
 
         if self.BIRTHDAY_DATE is None:
-            birth = (await self.middleware.call('datastore.config', 'system.settings'))['stg_birthday']
+            birth = (await DatastoreService.instance.config('system.settings'))['stg_birthday']
             if birth != datetime(1970, 1, 1):
                 self.BIRTHDAY_DATE = birth
 
@@ -507,7 +510,7 @@ class SystemService(Service):
         """
         Returns whether the system completed boot and is ready to use
         """
-        return await self.middleware.call("system.state") != "BOOTING"
+        return await self.state() != "BOOTING"
 
     @accepts()
     async def state(self):
@@ -571,14 +574,14 @@ class SystemService(Service):
         """
         Returns basic system information.
         """
-        time_info = await self.middleware.call('system.time_info')
-        dmidecode = await self.middleware.call('system.dmidecode_info')
-        cpu_info = await self.middleware.call('system.cpu_info')
-        mem_info = await self.middleware.call('system.mem_info')
+        time_info = await self.time_info()
+        dmidecode = await self.middleware.run_in_thread(self.instance.dmidecode_info)
+        cpu_info = await self.cpu_info()
+        mem_info = await self.mem_info()
 
         return {
             'version': self.version(),
-            'buildtime': await self.middleware.call('system.build_time'),
+            'buildtime': await self.build_time(None),
             'hostname': socket.gethostname(),
             'physmem': mem_info['physmem_size'],
             'model': cpu_info['cpu_model'],
@@ -592,15 +595,15 @@ class SystemService(Service):
             'license': await self.middleware.run_in_thread(self._get_license),
             'boottime': time_info['boot_time'],
             'datetime': time_info['datetime'],
-            'birthday': await self.middleware.call('system.birthday'),
-            'timezone': (await self.middleware.call('datastore.config', 'system.settings'))['stg_timezone'],
+            'birthday': await self.birthday(),
+            'timezone': (await DatastoreService.instance.config('system.settings'))['stg_timezone'],
             'system_manufacturer': dmidecode['system-manufacturer'] if dmidecode['system-manufacturer'] else None,
             'ecc_memory': dmidecode['ecc-memory'],
         }
 
     @private
     async def is_ix_hardware(self):
-        product = (await self.middleware.call('system.dmidecode_info'))['system-product-name']
+        product = (await self.middleware.run_in_thread(self.instance.dmidecode_info))['system-product-name']
         return product is not None and product.startswith(('FREENAS-', 'TRUENAS-'))
 
     @private
@@ -679,7 +682,7 @@ class SystemService(Service):
 
         Result value will be the absolute path of the file.
         """
-        system_dataset_path = self.middleware.call_sync('systemdataset.config')['path']
+        system_dataset_path = self.middleware.run_coroutine(SystemDatasetService.instance.config())['path']
         if system_dataset_path is not None:
             direc = os.path.join(system_dataset_path, 'ixdiagnose')
         else:
@@ -846,8 +849,7 @@ class SystemGeneralService(ConfigService):
                 data['ui_' + key[3:]] = data.pop(key)
 
         if data['ui_certificate']:
-            data['ui_certificate'] = await self.middleware.call(
-                'certificate.query',
+            data['ui_certificate'] = await CertificateService.instance.query(
                 [['id', '=', data['ui_certificate']['id']]],
                 {'get': True}
             )
@@ -870,8 +872,8 @@ class SystemGeneralService(ConfigService):
         Returns UI ipv4 address choices.
         """
         return {
-            d['address']: d['address'] for d in await self.middleware.call(
-                'interface.ip_in_use', {'ipv4': True, 'ipv6': False, 'any': True, 'static': True}
+            d['address']: d['address'] for d in await self.middleware.run_in_thread(
+                InterfaceService.instance.ip_in_use, {'ipv4': True, 'ipv6': False, 'any': True, 'static': True}
             )
         }
 
@@ -881,8 +883,8 @@ class SystemGeneralService(ConfigService):
         Returns UI ipv6 address choices.
         """
         return {
-            d['address']: d['address'] for d in await self.middleware.call(
-                'interface.ip_in_use', {'ipv4': False, 'ipv6': True, 'any': True, 'static': True}
+            d['address']: d['address'] for d in await self.middleware.run_in_thread(
+                InterfaceService.instance.ip_in_use, {'ipv4': False, 'ipv6': True, 'any': True, 'static': True}
             )
         }
 
@@ -1132,8 +1134,7 @@ class SystemGeneralService(ConfigService):
                 )
 
         certificate_id = data.get('ui_certificate')
-        cert = await self.middleware.call(
-            'certificate.query',
+        cert = await CertificateService.instance.query(
             [["id", "=", certificate_id]]
         )
         if not cert:
@@ -1144,8 +1145,8 @@ class SystemGeneralService(ConfigService):
         else:
             cert = cert[0]
             verrors.extend(
-                await self.middleware.call(
-                    'certificate.cert_services_validation', certificate_id, f'{schema}.ui_certificate', False
+                await CertificateService.instance.cert_services_validation(
+                    certificate_id, f'{schema}.ui_certificate', False
                 )
             )
 
@@ -1163,7 +1164,7 @@ class SystemGeneralService(ConfigService):
         """
         return {
             i['id']: i['name']
-            for i in await self.middleware.call('certificate.query', [
+            for i in await CertificateService.instance.query([
                 ('cert_type_CSR', '=', False)
             ])
         }
@@ -1216,7 +1217,7 @@ class SystemGeneralService(ConfigService):
                 advanced_config[deprecated_field] = data[deprecated_field]
                 del data[deprecated_field]
         if advanced_config:
-            await self.middleware.call('system.advanced.update', advanced_config)
+            await SystemAdvancedService.instance.update(advanced_config)
 
         config = await self.config()
         config['ui_certificate'] = config['ui_certificate']['id'] if config['ui_certificate'] else None
@@ -1236,8 +1237,7 @@ class SystemGeneralService(ConfigService):
             if key.startswith('ui_'):
                 new_config['gui' + key[3:]] = new_config.pop(key)
 
-        await self.middleware.call(
-            'datastore.update',
+        await DatastoreService.instance.update(
             self._config.datastore,
             config['id'],
             new_config,
@@ -1245,20 +1245,20 @@ class SystemGeneralService(ConfigService):
         )
 
         if config['kbdmap'] != new_config['kbdmap']:
-            await self.middleware.call('service.restart', 'syscons')
+            await ServiceService.instance.restart('syscons')
 
         if config['timezone'] != new_config['timezone']:
-            await self.middleware.call('zettarepl.update_config', {'timezone': new_config['timezone']})
-            await self.middleware.call('service.reload', 'timeservices')
-            await self.middleware.call('service.restart', 'cron')
+            await self.middleware.run_in_thread(ZettareplService.instance.update_config, {'timezone': new_config['timezone']})
+            await ServiceService.instance.reload('timeservices')
+            await ServiceService.instance.restart('cron')
 
         if config['language'] != new_config['language']:
-            await self.middleware.call('system.general.set_language')
+            await self.middleware.run_in_thread(self.set_language)
 
         if config['crash_reporting'] != new_config['crash_reporting']:
-            await self.middleware.call('system.general.set_crash_reporting')
+            await self.middleware.run_in_thread(self.set_crash_reporting)
 
-        await self.middleware.call('service.start', 'ssl')
+        await ServiceService.instance.start('ssl')
 
         return await self.config()
 
@@ -1271,14 +1271,14 @@ class SystemGeneralService(ConfigService):
         HTTP server will be restarted after `delay` seconds.
         """
         event_loop = self.middleware.loop
-        event_loop.call_later(delay, lambda: self.middleware.create_task(self.middleware.call('service.restart', 'http')))
+        event_loop.call_later(delay, lambda: self.middleware.create_task(ServiceService.instance.restart('http')))
 
     @accepts()
     async def local_url(self):
         """
         Returns configured local url in the format of protocol://host:port
         """
-        config = await self.middleware.call('system.general.config')
+        config = await self.config()
 
         if config['ui_certificate']:
             protocol = 'https'
@@ -1311,7 +1311,7 @@ class SystemGeneralService(ConfigService):
     @private
     async def get_ui_urls(self):
 
-        config = await self.middleware.call('system.general.config')
+        config = await self.config()
         kwargs = {'static': True} if (await self.middleware.call('failover.licensed')) else {}
 
         # http is always used
@@ -1336,7 +1336,7 @@ class SystemGeneralService(ConfigService):
 
         urls = []
         if all_ip4 or all_ip6:
-            for i in await self.middleware.call('interface.ip_in_use', kwargs):
+            for i in await self.middleware.run_in_thread(InterfaceService.instance.ip_in_use, kwargs):
 
                 # nginx could be listening to all IPv4 IPs but not all IPv6 IPs
                 # or vice versa
@@ -1391,12 +1391,12 @@ class SystemGeneralService(ConfigService):
 
     @private
     def set_language(self):
-        language = self.middleware.call_sync('system.general.config')['language']
+        language = self.middleware.run_coroutine(self.config())['language']
         set_language(language)
 
     @private
     def set_crash_reporting(self):
-        CrashReporting.enabled_in_settings = self.middleware.call_sync('system.general.config')['crash_reporting']
+        CrashReporting.enabled_in_settings = self.middleware.run_coroutine(self.config())['crash_reporting']
 
 
 async def _update_birthday_data(middleware, birthday=None):
@@ -1466,7 +1466,7 @@ class SystemHealthEventSource(EventSource):
     def check_update(self):
         while not self._cancel.is_set():
             try:
-                self._check_update = self.middleware.call_sync('update.check_available')['status']
+                self._check_update = UpdateService.instance.check_available()['status']
             except Exception:
                 self.middleware.logger.warn(
                     'Failed to check avaiable update for system.health event', exc_info=True,
@@ -1477,7 +1477,7 @@ class SystemHealthEventSource(EventSource):
     def pools_statuses(self):
         return {
             p['name']: {'status': p['status']}
-            for p in self.middleware.call_sync('pool.query')
+            for p in self.middleware.run_coroutine(PoolService.instance.query())
         }
 
     def run(self):
@@ -1506,8 +1506,7 @@ class SystemHealthEventSource(EventSource):
 
             cpu_percent = round((sum(cp_diff[:3]) / sum(cp_diff)) * 100, 2)
 
-            pools = self.middleware.call_sync(
-                'cache.get_or_put',
+            pools = CacheService.instance.get_or_put(
                 CACHE_POOLS_STATUSES,
                 1800,
                 self.pools_statuses,

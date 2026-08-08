@@ -3,7 +3,9 @@ from middlewared.service import CallError, ConfigService, ValidationErrors, job,
 import middlewared.sqlalchemy as sa
 from middlewared.utils import osc
 from middlewared.validators import Email
+from middlewared.plugins.account import UserService
 from middlewared.plugins.datastore.connection import DatastoreService
+from middlewared.plugins.system import SystemService
 from middlewared.main import RUNDIR
 
 from datetime import datetime, timedelta
@@ -170,7 +172,7 @@ class MailService(ConfigService):
 
         await DatastoreService.instance.update('system.email', config['id'], new, {'prefix': 'em_'})
 
-        await self.middleware.call('mail.gmail_initialize')
+        await self.middleware.run_in_thread(self.instance.gmail_initialize)
 
         return await self.config()
 
@@ -242,9 +244,9 @@ class MailService(ConfigService):
         ]
         """
 
-        product_name = self.middleware.call_sync('system.product_name')
+        product_name = self.middleware.run_coroutine(SystemService.instance.product_name())
 
-        gc = self.middleware.call_sync('datastore.config', 'network.globalconfiguration')
+        gc = self.middleware.run_coroutine(DatastoreService.instance.config('network.globalconfiguration'))
 
         hostname = f'{gc["gc_hostname"]}.{gc["gc_domain"]}'
 
@@ -267,7 +269,7 @@ class MailService(ConfigService):
     @job(pipes=['input'], check_pipes=False)
     @private
     def send_raw(self, job, message, config):
-        config = dict(self.middleware.call_sync('mail.config'), **config)
+        config = dict(self.middleware.run_coroutine(self.instance.config()), **config)
 
         if config['fromname']:
             from_addr = Header(config['fromname'], 'utf-8')
@@ -291,7 +293,7 @@ class MailService(ConfigService):
         else:
             interval = timedelta(seconds=interval)
 
-        sw_name = self.middleware.call_sync('system.info')['version'].split('-', 1)[0]
+        sw_name = self.middleware.run_coroutine(SystemService.instance.info())['version'].split('-', 1)[0]
 
         channel = message.get('channel')
         if not channel:
@@ -318,8 +320,8 @@ class MailService(ConfigService):
         to = message.get('to')
         if not to:
             to = [
-                self.middleware.call_sync(
-                    'user.query', [('username', '=', 'root')], {'get': True}
+                self.middleware.run_coroutine(
+                    UserService.instance.query([('username', '=', 'root')], {'get': True})
                 )['email']
             ]
             if not to[0]:
@@ -393,7 +395,7 @@ class MailService(ConfigService):
         syslog.openlog(logoption=syslog.LOG_PID, facility=syslog.LOG_MAIL)
         try:
             if config['oauth']:
-                self.middleware.call_sync('mail.gmail_send', msg, config)
+                self.instance.gmail_send(msg, config)
             else:
                 server = self._get_smtp_server(config, message['timeout'], local_hostname=local_hostname)
                 # NOTE: Don't do this.
@@ -460,9 +462,9 @@ class MailService(ConfigService):
         with MailQueue() as mq:
             for queue in list(mq.queue):
                 try:
-                    config = self.middleware.call_sync('mail.config')
+                    config = self.middleware.run_coroutine(self.instance.config())
                     if config['oauth']:
-                        self.middleware.call_sync('mail.gmail_send', queue.message, config)
+                        self.instance.gmail_send(queue.message, config)
                     else:
                         server = self._get_smtp_server(config)
                         server.sendmail(queue.message['From'].encode(),
