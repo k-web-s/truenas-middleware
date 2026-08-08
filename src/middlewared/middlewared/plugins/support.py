@@ -12,7 +12,8 @@ import requests
 import simplejson
 
 from middlewared.pipe import Pipes
-from middlewared.plugins.system import DEBUG_MAX_SIZE
+from middlewared.plugins.datastore.connection import DatastoreService
+from middlewared.plugins.system import DEBUG_MAX_SIZE, SystemService
 from middlewared.schema import Bool, Dict, Int, List, Str, accepts
 from middlewared.service import CallError, ConfigService, job, ValidationErrors
 import middlewared.sqlalchemy as sa
@@ -92,8 +93,7 @@ class SupportService(ConfigService):
         if verrors:
             raise verrors
 
-        await self.middleware.call(
-            'datastore.update',
+        await DatastoreService.instance.update(
             self._config.datastore,
             config_data['id'],
             config_data,
@@ -107,10 +107,10 @@ class SupportService(ConfigService):
         Returns whether Proactive Support is available for this product type and current license.
         """
 
-        if not await self.middleware.call('system.is_enterprise'):
+        if not await SystemService.instance.is_enterprise():
             return False
 
-        license = (await self.middleware.call('system.info'))['license']
+        license = (await SystemService.instance.info())['license']
         if license is None:
             return False
 
@@ -148,7 +148,7 @@ class SupportService(ConfigService):
         Returns a dict with the category name as a key and id as value.
         """
 
-        sw_name = 'freenas' if not await self.middleware.call('system.is_enterprise') else 'truenas'
+        sw_name = 'freenas' if not await SystemService.instance.is_enterprise() else 'truenas'
         data = await post(
             f'https://{ADDRESS}/{sw_name}/api/v1.0/categories',
             data=json.dumps({
@@ -189,14 +189,14 @@ class SupportService(ConfigService):
 
         job.set_progress(1, 'Gathering data')
 
-        sw_name = 'freenas' if not await self.middleware.call('system.is_enterprise') else 'truenas'
+        sw_name = 'freenas' if not await SystemService.instance.is_enterprise() else 'truenas'
 
         if sw_name == 'freenas':
             required_attrs = ('type', 'token')
         else:
             required_attrs = ('phone', 'name', 'email', 'criticality', 'environment')
-            data['serial'] = (await self.middleware.call('system.dmidecode_info'))['system-serial-number']
-            license = (await self.middleware.call('system.info'))['license']
+            data['serial'] = (await self.middleware.run_in_thread(SystemService.instance.dmidecode_info))['system-serial-number']
+            license = (await SystemService.instance.info())['license']
             if license:
                 data['company'] = license['customer_name']
             else:
@@ -206,7 +206,7 @@ class SupportService(ConfigService):
             if i not in data:
                 raise CallError(f'{i} is required', errno.EINVAL)
 
-        data['version'] = (await self.middleware.call('system.version')).split('-', 1)[-1]
+        data['version'] = (await self.middleware.run_in_thread(SystemService.instance.version)).split('-', 1)[-1]
         debug = data.pop('attach_debug')
 
         type_ = data.get('type')
@@ -232,11 +232,9 @@ class SupportService(ConfigService):
         if debug:
             job.set_progress(60, 'Generating debug file')
 
-            debug_job = await self.middleware.call(
-                'system.debug', pipes=Pipes(output=self.middleware.pipe()),
-            )
+            debug_job = await self.middleware.run_in_thread(SystemService.instance.debug, pipes=Pipes(output=self.middleware.pipe()))
 
-            if await self.middleware.call('system.is_enterprise') and await self.middleware.call('failover.licensed'):
+            if await SystemService.instance.is_enterprise() and await self.middleware.call('failover.licensed'):
                 debug_name = 'debug-{}.tar'.format(time.strftime('%Y%m%d%H%M%S'))
             else:
                 debug_name = 'debug-{}-{}.txz'.format(
@@ -277,9 +275,7 @@ class SupportService(ConfigService):
                     }
                     if 'token' in data:
                         t['token'] = data['token']
-                    tjob = await self.middleware.call(
-                        'support.attach_ticket', t, pipes=Pipes(input=self.middleware.pipe()),
-                    )
+                    tjob = await self.middleware.run_in_thread(self.attach_ticket, t, pipes=Pipes(input=self.middleware.pipe()))
 
                     def copy2():
                         try:
@@ -310,7 +306,7 @@ class SupportService(ConfigService):
         Method to attach a file to a existing ticket.
         """
 
-        sw_name = 'freenas' if not self.middleware.call_sync('system.is_enterprise') else 'truenas'
+        sw_name = 'freenas' if not self.middleware.run_coroutine(SystemService.instance.is_enterprise()) else 'truenas'
 
         data['ticketnum'] = data.pop('ticket')
         filename = data.pop('filename')
