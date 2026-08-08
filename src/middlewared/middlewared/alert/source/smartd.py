@@ -2,6 +2,8 @@ import subprocess
 
 from middlewared.alert.base import AlertClass, AlertCategory, AlertLevel, Alert, ThreadedAlertSource
 from middlewared.plugins.datastore.connection import DatastoreService
+from middlewared.plugins.service import ServiceService
+from middlewared.plugins.system import SystemService
 
 
 class SmartdAlertClass(AlertClass):
@@ -26,9 +28,9 @@ class SmartdAlertSource(ThreadedAlertSource):
                 # in these environments isn"t a huge deal.  So we"ll skip alerting.
                 return
 
-            if not self.middleware.call_sync("system.is_freenas"):
+            if not self.middleware.run_coroutine(SystemService.instance.is_freenas()):
                 if self.middleware.call_sync("failover.status") != "MASTER":
                     return
 
-            if not self.middleware.call_sync("service.started", "smartd"):
+            if not self.middleware.run_coroutine(ServiceService.instance.started("smartd")):
                 return Alert(SmartdAlertClass)

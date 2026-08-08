@@ -53,10 +53,10 @@ class MailService(Service):
 
     @private
     def gmail_initialize(self):
-        config = self.middleware.call_sync("mail.config")
+        config = self.middleware.run_coroutine(self.instance.config())
         if self.gmail_service is not None:
             self.gmail_service.close()
-        self.gmail_service = self.middleware.call_sync("mail.gmail_build_service", config)
+        self.gmail_service = self.instance.gmail_build_service(config)
 
     @private
     def gmail_build_service(self, config):
@@ -67,7 +67,7 @@ class MailService(Service):
 
     @private
     def gmail_send(self, message, config, _retry_broken_pipe=True):
-        gmail_service = self.middleware.call_sync("mail.gmail_build_service", config)
+        gmail_service = self.instance.gmail_build_service(config)
         if gmail_service == self.gmail_service:
             # Use existing gmail service if credentials match to avoid extra access token refresh
             gmail_service = self.gmail_service
