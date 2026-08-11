@@ -56,6 +56,9 @@ def setup():
     from .space import SpaceCollector
     REGISTRY.register(SpaceCollector())
 
+    from .kstat import KstatCollector
+    REGISTRY.register(KstatCollector())
+
     from prometheus_client import PROCESS_COLLECTOR
     REGISTRY.unregister(PROCESS_COLLECTOR)
 
