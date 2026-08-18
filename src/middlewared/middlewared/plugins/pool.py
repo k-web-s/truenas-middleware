@@ -26,7 +26,7 @@ from middlewared.alert.base import AlertCategory, AlertClass, AlertLevel, Simple
 from middlewared.plugins.datastore.connection import DatastoreService
 from middlewared.plugins.disk_.overprovision_base import CanNotBeOverprovisionedException
 from middlewared.plugins.pool_.utils import get_dataset_parents
-from middlewared.plugins.zfs import ZFSSetPropertyError
+from middlewared.plugins.zfs import ZFSSetPropertyError, ZFSPoolService, ZFSDatasetService
 from middlewared.schema import (
     accepts, Attribute, Bool, Cron, Dict, EnumMixin, Int, List, Patch, Str, UnixPerm, Any, Ref,
 )
@@ -441,7 +441,7 @@ class PoolService(CRUDService):
         """
         pool['path'] = f'/mnt/{pool["name"]}'
         try:
-            zpool = self.middleware.call_sync('zfs.pool.query', [('id', '=', pool['name'])])[0]
+            zpool = ZFSPoolService.instance.query([('id', '=', pool['name'])])[0]
         except Exception:
             zpool = None
 
@@ -875,7 +875,7 @@ class PoolService(CRUDService):
             properties['autotrim'] = {'value': data['autotrim'].lower()}
 
         if (
-            zfs_pool := await self.middleware.call('zfs.pool.query', [['name', '=', pool['name']]])
+            zfs_pool := await self.middleware.run_in_thread(ZFSPoolService.instance.query, [['name', '=', pool['name']]])
         ) and zfs_pool[0]['properties']['ashift']['source'] == 'DEFAULT':
             # https://ixsystems.atlassian.net/browse/NAS-112093
             properties['ashift'] = {'value': '12'}
@@ -1889,7 +1889,7 @@ class PoolDatasetUserPropService(CRUDService):
         return filter_list(
             [
                 {k: d[k] for k in ('id', 'properties')} for d in
-                (self.middleware.call_sync('zfs.dataset.query', [], {
+                (ZFSDatasetService.instance.query([], {
                     'extra': {'user_properties': True, 'properties': []}
                 }))
             ], filters, options
@@ -2191,17 +2191,13 @@ class PoolDatasetService(CRUDService):
         # during repair disks were not plugged in and system was booted, in such cases we would like to not
         # remove the encryption keys from the database.
         for root_ds in {pool['name'] for pool in self.middleware.call_sync('pool.query')} - {
-            ds['id'] for ds in self.middleware.call_sync(
-                'zfs.dataset.query', [], {'extra': {'properties': [], 'flat': False}}
-            )
+            ds['id'] for ds in ZFSDatasetService.instance.query([], {'extra': {'properties': [], 'flat': False}})
         }:
             filters.extend([['name', '!=', root_ds], ['name', '!^', f'{root_ds}/']])
 
         db_datasets = self.query_encrypted_roots_keys(filters)
         encrypted_roots = {
-            d['name']: d for d in self.middleware.call_sync(
-                'zfs.dataset.query', filters, {'extra': {'properties': ['encryptionroot']}}
-            ) if d['name'] == d['encryption_root']
+            d['name']: d for d in ZFSDatasetService.instance.query(filters, {'extra': {'properties': ['encryptionroot']}}) if d['name'] == d['encryption_root']
         }
         to_remove = []
         check_key_job = self.middleware.call_sync('zfs.dataset.bulk_process', 'check_key', [
@@ -2840,16 +2836,14 @@ class PoolDatasetService(CRUDService):
                 break
 
         return filter_list(
-            self.__transform(self.middleware.call_sync(
-                'zfs.dataset.query', zfsfilters, {
-                    'extra': {
-                        'flat': extra.get('flat', True),
-                        'retrieve_children': retrieve_children,
-                        'properties': props,
-                        'snapshots': snapshots,
-                    }
+            self.__transform(ZFSDatasetService.instance.query(zfsfilters, {
+                'extra': {
+                    'flat': extra.get('flat', True),
+                    'retrieve_children': retrieve_children,
+                    'properties': props,
+                    'snapshots': snapshots,
                 }
-            )), filters, options
+            })), filters, options
         )
 
     def __transform(self, datasets):
@@ -3037,7 +3031,7 @@ class PoolDatasetService(CRUDService):
 
         unencrypted_parent = False
         for check_parent in get_dataset_parents(data['name']):
-            check_ds = await self.middleware.call('zfs.dataset.query', [['id', '=', check_parent]], {
+            check_ds = await self.middleware.run_in_thread(ZFSDatasetService.instance.query, [['id', '=', check_parent]], {
                 'get': True,
                 'extra': {'recursive': False},
             })
@@ -3289,8 +3283,8 @@ class PoolDatasetService(CRUDService):
     async def __common_validation(self, verrors, schema, data, mode):
         assert mode in ('CREATE', 'UPDATE')
 
-        parent = await self.middleware.call(
-            'zfs.dataset.query',
+        parent = await self.middleware.run_in_thread(
+            ZFSDatasetService.instance.query,
             [('id', '=', data['name'].rsplit('/', 1)[0])],
             {'extra': {'recursive': False}},
         )
@@ -3354,8 +3348,8 @@ class PoolDatasetService(CRUDService):
                 avail_mem = int(parent['properties']['available']['rawvalue'])
 
                 if mode == 'UPDATE':
-                    avail_mem += int((await self.middleware.call(
-                        'zfs.dataset.query',
+                    avail_mem += int((await self.middleware.run_in_thread(
+                        ZFSDatasetService.instance.query,
                         [['id', '=', data['name']]]
                     ))[0]['properties']['used']['rawvalue'])
 
@@ -3415,7 +3409,7 @@ class PoolDatasetService(CRUDService):
             }
         """
 
-        if not options['recursive'] and await self.middleware.call('zfs.dataset.query', [['id', '^', f'{id}/']]):
+        if not options['recursive'] and await self.middleware.run_in_thread(ZFSDatasetService.instance.query, [['id', '^', f'{id}/']]):
             raise CallError(f'Failed to delete dataset: cannot destroy {id!r}: filesystem has children',
                             errno.ENOTEMPTY)
 
@@ -3431,7 +3425,7 @@ class PoolDatasetService(CRUDService):
         """
         Promote the cloned dataset `id`.
         """
-        dataset = await self.middleware.call('zfs.dataset.query', [('id', '=', id)])
+        dataset = await self.middleware.run_in_thread(ZFSDatasetService.instance.query, [('id', '=', id)])
         if not dataset:
             raise CallError(f'Dataset "{id}" does not exist.', errno.ENOENT)
         if not dataset[0]['properties']['origin']['value']:
@@ -4285,7 +4279,7 @@ class PoolScrubService(CRUDService):
 
     async def __run(self, name, threshold):
         if name == await self.middleware.call('boot.pool_name'):
-            pool = await self.middleware.call('zfs.pool.query', [['name', '=', name]], {'get': True})
+            pool = await self.middleware.run_in_thread(ZFSPoolService.instance.query, [['name', '=', name]], {'get': True})
         else:
             if not await self.middleware.call('system.is_freenas'):
                 if await self.middleware.call('failover.status') == 'BACKUP':

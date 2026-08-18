@@ -8,6 +8,7 @@ import humanfriendly
 
 from middlewared.service import CallError, private, Service
 from middlewared.utils import osc
+from middlewared.plugins.zfs import ZFSPoolService
 
 logger = logging.getLogger(__name__)
 
@@ -102,5 +103,5 @@ class UpdateService(Service):
         )
 
     def _space_left(self, pool_name):
-        pool = self.middleware.call_sync("zfs.pool.query", [["name", "=", pool_name]], {"get": True})
+        pool = ZFSPoolService.instance.query([["name", "=", pool_name]], {"get": True})
         return pool["properties"]["free"]["parsed"]

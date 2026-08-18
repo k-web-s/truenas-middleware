@@ -1,4 +1,5 @@
 from middlewared.alert.base import AlertClass, AlertCategory, AlertLevel, Alert, AlertSource
+from middlewared.plugins.zfs import ZFSPoolService
 
 
 class BootPoolStatusAlertClass(AlertClass):
@@ -13,7 +14,7 @@ class BootPoolStatusAlertClass(AlertClass):
 class BootPoolStatusAlertSource(AlertSource):
     async def check(self):
         boot_pool = await self.middleware.call("boot.pool_name")
-        pool = await self.middleware.call("zfs.pool.query", [["id", "=", boot_pool]])
+        pool = await self.middleware.run_in_thread(ZFSPoolService.instance.query, [["id", "=", boot_pool]])
         if not pool:
             return
         pool = pool[0]

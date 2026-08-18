@@ -4,6 +4,7 @@ from middlewared.schema import Bool, Dict, Int, Str, accepts
 from middlewared.service import CallError, Service, job, private
 from middlewared.utils import osc, run
 from middlewared.validators import Range
+from middlewared.plugins.zfs import ZFSPoolService
 
 try:
     from bsd import geom
@@ -27,7 +28,7 @@ class BootService(Service):
         """
         Returns the current state of the boot pool, including all vdevs, properties and datasets.
         """
-        return await self.middleware.call('zfs.pool.query', [('name', '=', BOOT_POOL_NAME)], {'get': True})
+        return await self.middleware.run_in_thread(ZFSPoolService.instance.query, [('name', '=', BOOT_POOL_NAME)], {'get': True})
 
     @accepts()
     async def get_disks(self):
@@ -98,7 +99,7 @@ class BootService(Service):
             format_opts['swap_size'] = swap_part['size']
         await self.middleware.call('boot.format', dev, format_opts)
 
-        pool = await self.middleware.call('zfs.pool.query', [['name', '=', BOOT_POOL_NAME]], {'get': True})
+        pool = await self.middleware.run_in_thread(ZFSPoolService.instance.query, [['name', '=', BOOT_POOL_NAME]], {'get': True})
 
         zfs_dev_part = await self.middleware.call('disk.get_partition', dev, 'ZFS')
         extend_pool_job = await self.middleware.call(
@@ -177,7 +178,7 @@ class BootService(Service):
     async def check_update_ashift_property(self):
         properties = {}
         if (
-            zfs_pool := await self.middleware.call('zfs.pool.query', [('name', '=', BOOT_POOL_NAME)])
+            zfs_pool := await self.middleware.run_in_thread(ZFSPoolService.instance.query, [('name', '=', BOOT_POOL_NAME)])
         ) and zfs_pool[0]['properties']['ashift']['source'] == 'DEFAULT':
             properties['ashift'] = {'value': '12'}
 

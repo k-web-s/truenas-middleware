@@ -12,6 +12,7 @@ from middlewared.schema import accepts, Bool, Dict, Int, Str
 from middlewared.service import filterable, private, CallError, CRUDService
 from middlewared.service_exception import ValidationErrors
 from middlewared.plugins.datastore.connection import DatastoreService
+from middlewared.plugins.zfs import ZFSPoolService
 from middlewared.utils import run
 from middlewared.utils.asyncio_ import asyncio_map
 
@@ -135,7 +136,7 @@ class DiskService(CRUDService):
             context['boot_pool_disks'] = await self.middleware.call('boot.get_disks')
             context['boot_pool_name'] = await self.middleware.call('boot.pool_name')
 
-            for pool in await self.middleware.call('zfs.pool.query'):
+            for pool in await self.middleware.run_in_thread(ZFSPoolService.instance.query):
                 topology = await self.middleware.call('pool.transform_topology_lightweight', pool['groups'])
                 for vdev in await self.middleware.call('pool.flatten_topology', topology):
                     if vdev['type'] == 'DISK':
