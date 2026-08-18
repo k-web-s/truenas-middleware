@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from middlewared.alert.base import AlertClass, AlertCategory, AlertLevel, Alert, AlertSource, UnavailableException
 from middlewared.alert.schedule import IntervalSchedule
+from middlewared.plugins.zfs import ZFSPoolService
 
 
 class ZpoolCapacityNoticeAlertClass(AlertClass):
@@ -45,7 +46,7 @@ class ZpoolCapacityAlertSource(AlertSource):
 
     async def check(self):
         alerts = []
-        for pool in await self.middleware.call("zfs.pool.query"):
+        for pool in await self.middleware.run_in_thread(ZFSPoolService.instance.query):
             try:
                 capacity = int(pool["properties"]["capacity"]["parsed"])
             except (KeyError, ValueError):

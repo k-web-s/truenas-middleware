@@ -9,6 +9,7 @@ import middlewared.sqlalchemy as sa
 from middlewared.utils import load_modules, load_classes, Popen, run
 from middlewared.validators import Range, Time
 from middlewared.plugins.datastore.connection import DatastoreService
+from middlewared.plugins.zfs import ZFSDatasetService
 from middlewared.validators import validate_attributes
 
 import aiorwlock
@@ -176,7 +177,7 @@ async def rclone(middleware, job, cloud_sync, dry_run=False):
         if cloud_sync["direction"] == "PUSH":
             if cloud_sync["snapshot"]:
                 dataset, recursive = get_dataset_recursive(
-                    await middleware.call("zfs.dataset.query", [["type", "=", "FILESYSTEM"]]),
+                    await self.middleware.run_in_thread(ZFSDatasetService.instance.query, [["type", "=", "FILESYSTEM"]]),
                     cloud_sync["path"],
                 )
                 snapshot_name = (

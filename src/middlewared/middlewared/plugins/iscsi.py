@@ -1,6 +1,7 @@
 from middlewared.async_validators import check_path_resides_within_volume
 from middlewared.common.attachment import LockableFSAttachmentDelegate
 from middlewared.plugins.datastore.connection import DatastoreService
+from middlewared.plugins.zfs import ZFSDatasetService, ZFSSnapshot
 from middlewared.schema import (accepts, Bool, Dict, IPAddr, Int, List, Patch,
                                 Str)
 from middlewared.service import CallError, CRUDService, filterable, private, SharingService, ValidationErrors
@@ -540,8 +541,8 @@ class iSCSITargetExtentService(SharingService):
             if len(result) == 1 and result[0]['type'] == 'DISK' and about_to_lock_dataset is None:
                 # Special optimized case
                 try:
-                    dataset = await self.middleware.call(
-                        'zfs.dataset.query',
+                    dataset = await self.middleware.run_in_thread(
+                        ZFSDatasetService.instance.query,
                         [['id', '=', result[0]['disk'][5:]]],
                         {
                             'extra': {'properties': ['encryption', 'keystatus']},
@@ -942,8 +943,8 @@ class iSCSITargetExtentService(SharingService):
 
         used_zvols = [i['path'] for i in zvol_query]
 
-        zfs_snaps = await self.middleware.call(
-            'zfs.snapshot.query', [], {'select': ['name'], 'order_by': ['name']}
+        zfs_snaps = await self.middleware.run_in_thread(
+            ZFSSnapshot.instance.query, [], {'select': ['name'], 'order_by': ['name']}
         )
 
         zvols = await self.middleware.call(
