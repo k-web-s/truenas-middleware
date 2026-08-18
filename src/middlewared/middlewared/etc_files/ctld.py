@@ -6,6 +6,7 @@ import sysctl
 
 from middlewared.client.utils import Struct
 from middlewared.plugins.datastore.connection import DatastoreService
+from middlewared.plugins.zfs import ZFSPoolService
 logger = logging.getLogger(__name__)
 
 
@@ -211,7 +212,7 @@ def main(middleware):
 
     # Cache zpool threshold
     poolthreshold = {}
-    zpoollist = {i['name']: i for i in middleware.call_sync('zfs.pool.query')}
+    zpoollist = {i['name']: i for i in ZFSPoolService.instance.query()}
 
     geom_xml = middleware.call_sync('geom.cache.get_class_xml', 'DISK')
     locked_extents = {d['id']: d for d in middleware.call_sync('iscsi.extent.query', [['locked', '=', True]])}

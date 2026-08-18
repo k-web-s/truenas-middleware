@@ -8,6 +8,7 @@ from copy import deepcopy
 from datetime import datetime
 
 from middlewared.service import Service
+from middlewared.plugins.zfs import ZFSDatasetService
 
 
 class UsageService(Service):
@@ -59,7 +60,7 @@ class UsageService(Service):
         return True
 
     def get_gather_context(self):
-        datasets = self.middleware.call_sync('zfs.dataset.query')
+        datasets = ZFSDatasetService.instance.query()
         context = {
             'network': self.middleware.call_sync('interfaces.query'),
             'root_datasets': {},
