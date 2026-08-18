@@ -185,13 +185,13 @@ def _sanitize_name(key):
 class KstatCollector:
     def __init__(self):
         self._descriptions = {}
-        for ctl in sysctl.filter(MISC_PREFIX.rstrip('.')):
+        for ctl in sysctl.iter(MISC_PREFIX.rstrip('.')):
             self._descriptions[ctl.name] = getattr(ctl, 'description', None) or ctl.name
 
     def collect(self):
         dataset_stats = defaultdict(dict)
 
-        for ctl in sysctl.filter('kstat.zfs'):
+        for ctl in sysctl.iter('kstat.zfs'):
             name = ctl.name
             if name.startswith(MISC_PREFIX):
                 if ctl.type not in _sysctl_numeric_types:
