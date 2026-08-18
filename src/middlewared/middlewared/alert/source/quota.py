@@ -11,6 +11,7 @@ import humanfriendly
 
 from middlewared.alert.base import AlertClass, AlertCategory, AlertLevel, Alert, ThreadedAlertSource
 from middlewared.plugins.datastore.connection import DatastoreService
+from middlewared.plugins.zfs import ZFSDatasetService
 from middlewared.alert.schedule import IntervalSchedule
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ class QuotaAlertSource(ThreadedAlertSource):
     def check_sync(self):
         alerts = []
 
-        datasets = self.middleware.call_sync("zfs.dataset.query_for_quota_alert")
+        datasets = ZFSDatasetService.instance.query_for_quota_alert()
 
         for d in datasets:
             d["name"] = d["name"]["rawvalue"]

@@ -1,5 +1,6 @@
 from middlewared.schema import accepts, Bool, Dict, Str
 from middlewared.service import CallError, ConfigService, ValidationErrors, job, private
+from middlewared.plugins.zfs import ZFSDatasetService
 import middlewared.sqlalchemy as sa
 from middlewared.utils import osc, Popen, run
 
@@ -277,7 +278,7 @@ class SystemDatasetService(ConfigService):
                 os.unlink(SYSDATASET_PATH)
             os.makedirs(SYSDATASET_PATH)
 
-        acltype = await self.middleware.call('zfs.dataset.query', [('id', '=', config['basename'])])
+        acltype = await self.middleware.run_in_thread(ZFSDatasetService.instance.query, [('id', '=', config['basename'])])
         if acltype and acltype[0]['properties']['acltype']['value'] != 'off':
             await self.middleware.call(
                 'zfs.dataset.update', config['basename'], {'properties': {'acltype': {'value': 'off'}}}
@@ -324,7 +325,7 @@ class SystemDatasetService(ConfigService):
         createdds = False
         datasets = [i[0] for i in self.__get_datasets(pool, uuid)]
         datasets_prop = {
-            i['id']: i['properties'] for i in await self.middleware.call('zfs.dataset.query', [('id', 'in', datasets)])
+            i['id']: i['properties'] for i in await self.middleware.run_in_thread(ZFSDatasetService.instance.query, [('id', 'in', datasets)])
         }
         for dataset in datasets:
             props = {'mountpoint': 'legacy', 'readonly': 'off'}

@@ -1,5 +1,6 @@
 from middlewared.async_validators import check_path_resides_within_volume
 from middlewared.plugins.datastore.connection import DatastoreService
+from middlewared.plugins.zfs import ZFSDatasetService, ZFSSnapshot
 from middlewared.common.attachment import FSAttachmentDelegate
 from middlewared.plugins.vm_.connection import LibvirtConnectionMixin
 from middlewared.schema import accepts, Error, Int, Str, Dict, List, Bool, Patch
@@ -1721,14 +1722,14 @@ class VMService(CRUDService, LibvirtConnectionMixin):
         return clone_name
 
     async def __clone_zvol(self, name, zvol, created_snaps, created_clones):
-        if not await self.middleware.call('zfs.dataset.query', [('id', '=', zvol)]):
+        if not await self.middleware.run_in_thread(ZFSDatasetService.instance.query, [('id', '=', zvol)]):
             raise CallError(f'zvol {zvol} does not exist.', errno.ENOENT)
 
         snapshot_name = name
         i = 0
         while True:
             zvol_snapshot = f'{zvol}@{snapshot_name}'
-            if await self.middleware.call('zfs.snapshot.query', [('id', '=', zvol_snapshot)]):
+            if await self.middleware.run_in_thread(ZFSSnapshot.instance.query, [('id', '=', zvol_snapshot)]):
                 if ZVOL_CLONE_RE.search(snapshot_name):
                     snapshot_name = ZVOL_CLONE_RE.sub(
                         rf'\1{ZVOL_CLONE_SUFFIX}{i}', snapshot_name,
@@ -1748,7 +1749,7 @@ class VMService(CRUDService, LibvirtConnectionMixin):
         i = 0
         while True:
             clone_dst = f'{zvol}_{clone_suffix}'
-            if await self.middleware.call('zfs.dataset.query', [('id', '=', clone_dst)]):
+            if await self.middleware.run_in_thread(ZFSDatasetService.instance.query, [('id', '=', clone_dst)]):
                 if ZVOL_CLONE_RE.search(clone_suffix):
                     clone_suffix = ZVOL_CLONE_RE.sub(
                         rf'\1{ZVOL_CLONE_SUFFIX}{i}', clone_suffix,

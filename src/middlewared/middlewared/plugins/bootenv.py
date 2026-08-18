@@ -11,6 +11,8 @@ import errno
 import os
 import subprocess
 
+from middlewared.plugins.zfs import ZFSDatasetService, ZFSSnapshot
+
 
 RE_BE_NAME = r'^[^/ *\'"?@!#$%^&()+=~<>;\\]+$'
 
@@ -33,7 +35,7 @@ class BootEnvService(CRUDService):
         cp = subprocess.run([self.BE_TOOL, 'list', '-H'], capture_output=True, text=True)
         datasets_origins = [
             d['properties']['origin']['parsed']
-            for d in self.middleware.call_sync('zfs.dataset.query')
+            for d in ZFSDatasetService.instance.query()
         ]
         boot_pool = self.middleware.call_sync('boot.pool_name')
         for line in cp.stdout.strip().split('\n'):
@@ -55,7 +57,7 @@ class BootEnvService(CRUDService):
                 'rawspace': None
             }
 
-            ds = self.middleware.call_sync('zfs.dataset.query', [
+            ds = ZFSDatasetService.instance.query([
                 ('id', '=', rf'{boot_pool}/ROOT/{fields[0]}'),
             ], {'extra': {'snapshots': True}})
             if ds:
@@ -63,7 +65,7 @@ class BootEnvService(CRUDService):
                 snapshot = None
                 origin = ds['properties']['origin']['parsed']
                 if '@' in origin:
-                    snapshot = self.middleware.call_sync('zfs.snapshot.query', [('id', '=', origin)])
+                    snapshot = ZFSSnapshot.instance.query([('id', '=', origin)])
                     if snapshot:
                         snapshot = snapshot[0]
                 if f'{self.BE_TOOL}:keep' in ds['properties']:
@@ -167,7 +169,7 @@ class BootEnvService(CRUDService):
         boot_pool = await self.middleware.call('boot.pool_name')
         boot_env = await self.get_instance(oid)
         dsname = f'{boot_pool}/ROOT/{boot_env["realname"]}'
-        ds = await self.middleware.call('zfs.dataset.query', [('id', '=', dsname)])
+        ds = await self.middleware.run_in_thread(ZFSDatasetService.instance.query, [('id', '=', dsname)])
         if not ds:
             raise CallError(f'BE {oid!r} does not exist.', errno.ENOENT)
         await self.middleware.call('zfs.dataset.update', dsname, {

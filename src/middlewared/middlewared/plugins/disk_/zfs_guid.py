@@ -2,6 +2,7 @@ import bidict
 
 from middlewared.service import private, Service
 from middlewared.service_exception import MatchNotFound
+from middlewared.plugins.zfs import ZFSPoolService
 
 
 class DiskService(Service):
@@ -20,7 +21,7 @@ class DiskService(Service):
         if isinstance(pool_id_or_pool, dict):
             topology = pool_id_or_pool["topology"]
         elif isinstance(pool_id_or_pool, str):
-            pool = await self.middleware.call("zfs.pool.query", [["name", "=", pool_id_or_pool]], {"get": True})
+            pool = await self.middleware.run_in_thread(ZFSPoolService.instance.query, [["name", "=", pool_id_or_pool]], {"get": True})
             topology = await self.middleware.call("pool.transform_topology", pool["groups"])
         else:
             pool = await self.middleware.call("pool.get_instance", pool_id_or_pool)
