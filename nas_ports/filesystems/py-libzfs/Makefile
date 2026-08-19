@@ -32,7 +32,12 @@ BUILD_DEPENDS+=        openzfs>=0:filesystems/openzfs
 RUN_DEPENDS+=  openzfs>=0:filesystems/openzfs
 .endif
 
-.include <bsd.port.options.mk>
+.include <bsd.port.pre.mk>
+
+# cgi module was removed from the stdlib in Python 3.13
+.if ${PYTHON_REL} >= 31300
+BUILD_DEPENDS+=	${PYTHON_PKGNAMEPREFIX}legacy-cgi>0:www/py-legacy-cgi@${PY_FLAVOR}
+.endif
 
 .if !exists(${SRC_BASE}/sys/Makefile)
 IGNORE=	requires kernel source files in ${SRC_BASE}
