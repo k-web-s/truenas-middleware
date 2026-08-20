@@ -8,7 +8,8 @@ import asyncio
 from collections import defaultdict
 from contextlib import suppress
 import grp
-import imp
+import importlib.machinery
+import importlib.util
 import os
 import pwd
 import stat
@@ -85,8 +86,17 @@ class PyRenderer(object):
 
     async def render(self, path, ctx):
         name = os.path.basename(path)
-        find = imp.find_module(name, [os.path.dirname(path)])
-        mod = imp.load_module(name, *find)
+        mod_path = None
+        for suffix in importlib.machinery.SOURCE_SUFFIXES:
+            candidate = os.path.join(os.path.dirname(path), name + suffix)
+            if os.path.isfile(candidate):
+                mod_path = candidate
+                break
+        if mod_path is None:
+            raise ImportError(f'No module named {name!r} in {os.path.dirname(path)!r}')
+        spec = importlib.util.spec_from_file_location(name, mod_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
         args = [self.service, self.service.middleware]
         if ctx is not None:
             args.append(ctx)
