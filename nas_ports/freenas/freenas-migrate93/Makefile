@@ -1,7 +1,7 @@
 # $FreeBSD$
 
 PORTNAME=	freenas-migrate93
-PORTVERSION=	2023042100
+PORTVERSION=	2026082000
 CATEGORIES=	freenas
 VALID_CATEGORIES+=	freenas
 
@@ -9,17 +9,22 @@ MAINTAINER=	dev@ixsystems.com
 COMMENT=	Tool to upgrade from 9.X databases
 
 RUN_DEPENDS=	python>0:${PORTSDIR}/lang/python \
+		${PYTHON_PKGNAMEPREFIX}ipaddr>0:devel/py-ipaddr@${PY_FLAVOR} \
 		${PYTHON_PKGNAMEPREFIX}lxml>0:devel/py-lxml
 
 USES=		python
 USE_GITHUB=	yes
-GH_ACCOUNT=	freenas
-GH_TAGNAME=	0687ad0af8
-EXTRA_PATCHES=	${PATCHDIR}/add-tn-13.3-files:-p0
+GH_ACCOUNT=	dravanet
+GH_TAGNAME=	41e9c33d35
 
 NO_BUILD=	yes
 
 .include <bsd.port.pre.mk>
+
+# cgi module was removed from the stdlib in Python 3.13
+.if ${PYTHON_REL} >= 31300
+RUN_DEPENDS+=	${PYTHON_PKGNAMEPREFIX}legacy-cgi>0:www/py-legacy-cgi@${PY_FLAVOR}
+.endif
 
 do-install:
 	${MKDIR} ${STAGEDIR}${PREFIX}/lib/migrate93
