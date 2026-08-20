@@ -9,7 +9,8 @@ import re
 
 from alembic import op
 import sqlalchemy as sa
-from OpenSSL import crypto
+from cryptography import x509
+from cryptography.x509.oid import ExtensionOID, NameOID
 
 # revision identifiers, used by Alembic.
 revision = '9c11f6c6f152'
@@ -42,19 +43,18 @@ def upgrade():
         if cert_data := conn.execute("SELECT cert_certificate FROM system_certificate WHERE id = :cert_id", cert_id=s3_conf[0]).fetchone():
             s3_tls_server_uri = 'localhost'
             try:
-                cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert_data[0])
-                cert_cn = cert.get_subject().CN
-                if cert_cn and is_valid_hostname(cert_cn):
-                    s3_tls_server_uri = cert_cn
+                cert = x509.load_pem_x509_certificate(cert_data[0].encode())
+                cert_cn = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
+                if cert_cn and is_valid_hostname(cert_cn[0].value):
+                    s3_tls_server_uri = cert_cn[0].value
 
                 cert_sans = []
-                for ext in filter(lambda e: e.get_short_name().decode() != 'UNDEF', (
-                    map(lambda i: cert.get_extension(i), range(cert.get_extension_count()))
-                    if isinstance(cert, crypto.X509)
-                    else cert.get_extensions()
-                )):
-                    if 'subjectAltName' == ext.get_short_name().decode():
-                        cert_sans = [s.strip() for s in ext.__str__().split(',') if s]
+                try:
+                    san_ext = cert.extensions.get_extension_for_oid(ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
+                except x509.ExtensionNotFound:
+                    san_ext = None
+                if san_ext:
+                    cert_sans = [str(getattr(entry, 'value', entry)) for entry in san_ext.value]
 
                 for cert_san in cert_sans:
                     san = cert_san.split(':')[-1].strip()
