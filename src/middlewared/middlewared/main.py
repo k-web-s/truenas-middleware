@@ -1550,7 +1550,8 @@ class Middleware(LoadPluginsMixin, ServiceCallMixin):
         self._console_write('starting')
 
         osc.set_thread_name('asyncio_loop')
-        self.loop = asyncio.get_event_loop()
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
 
         if self.loop_debug:
             self.loop.set_debug(True)

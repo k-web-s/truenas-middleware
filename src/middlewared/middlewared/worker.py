@@ -26,7 +26,8 @@ class FakeMiddleware(LoadPluginsMixin, ServiceCallMixin):
         _logger = logger.Logger('worker')
         self.logger = _logger.getLogger()
         _logger.configure_logging('console')
-        self.loop = asyncio.get_event_loop()
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
 
     def _call(self, name, serviceobj, methodobj, params=None, app=None, pipes=None, io_thread=False, job=None):
         try:
