@@ -1,6 +1,4 @@
-import crypt
 from datetime import datetime, timedelta
-import hmac
 import pyotp
 import random
 import re
@@ -8,6 +6,16 @@ import socket
 import string
 import subprocess
 import time
+
+from passlib.context import CryptContext
+
+# Matches the set of crypt(3) schemes historically accepted on FreeBSD and Linux
+# (bcrypt $2a$/$2b$, SHA-512 $6$, SHA-256 $5$, MD5 $1$, NT-hash $3$, DES and
+# disabled hashes), so passwords created by older systems keep working.
+PASSWORD_CONTEXT = CryptContext(schemes=[
+    "bcrypt", "sha512_crypt", "sha256_crypt",
+    "md5_crypt", "bsd_nthash", "des_crypt", "unix_disabled",
+])
 
 from middlewared.schema import Dict, Int, Str, accepts, Bool
 from middlewared.service import (
@@ -278,7 +286,12 @@ class AuthService(Service):
             return False
         if user['bsdusr_unixhash'] in ('x', '*'):
             return False
-        return hmac.compare_digest(crypt.crypt(password, user['bsdusr_unixhash']), user['bsdusr_unixhash'])
+        try:
+            return PASSWORD_CONTEXT.verify(password, user['bsdusr_unixhash'])
+        except ValueError:
+            # Unsupported or malformed hash format; treat as a mismatch, same as
+            # the old crypt() behaviour.
+            return False
 
     @accepts(Int('ttl', default=600, null=True), Dict('attrs', additional_attrs=True))
     def generate_token(self, ttl=None, attrs=None):

@@ -9,19 +9,18 @@ from middlewared.validators import Email
 from middlewared.plugins.smb import SMBBuiltin
 
 import binascii
-import crypt
 import errno
 import glob
 import hashlib
 import os
-import random
 import shlex
 import shutil
-import string
 import stat
 import time
 from pathlib import Path
 from contextlib import suppress
+
+from passlib.hash import sha512_crypt
 
 SKEL_PATH = '/usr/share/skel/'
 
@@ -60,9 +59,7 @@ def crypted_password(cleartext):
     """
     Generates an unix hash from `cleartext`.
     """
-    return crypt.crypt(cleartext, '$6$' + ''.join([
-        random.choice(string.ascii_letters + string.digits) for _ in range(16)]
-    ))
+    return sha512_crypt.hash(cleartext)
 
 
 def nt_password(cleartext):

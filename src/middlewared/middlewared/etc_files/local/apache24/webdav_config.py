@@ -1,21 +1,16 @@
 import re
 import os
-import secrets
 import hashlib
-import crypt
+
+from passlib.hash import sha512_crypt
 
 from contextlib import suppress
 from middlewared.plugins.etc import EtcUSR, EtcGRP
-from string import digits, ascii_uppercase, ascii_lowercase
 
 
 def generate_webdav_auth(middlewared, render_ctx, dirfd):
     def opener(path, flags):
         return os.open(path, flags, dir_fd=dirfd)
-
-    def salt():
-        letters = f'{ascii_lowercase}{ascii_uppercase}{digits}/.'
-        return '$6${0}'.format(''.join([secrets.choice(letters) for i in range(16)]))
 
     def remove_auth(dirfd):
         with suppress(FileNotFoundError):
@@ -38,7 +33,7 @@ def generate_webdav_auth(middlewared, render_ctx, dirfd):
         with open('webdavhtbasic', 'w', opener=opener) as f:
             os.fchmod(f.fileno(), 0o600)
             os.fchown(f.fileno(), EtcUSR.WEBDAV, EtcGRP.WEBDAV)
-            f.write(f'webdav:{crypt.crypt(password, salt())}')
+            f.write(f'webdav:{sha512_crypt.hash(password)}')
 
     elif auth_type == 'DIGEST':
         with suppress(FileNotFoundError):
