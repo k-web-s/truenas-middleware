@@ -1,4 +1,3 @@
-import asyncio
 import collections
 import re
 
@@ -50,8 +49,8 @@ async def devd_devfs_hook(middleware, data):
         # so we ignore this event.
         return
 
-    now = asyncio.get_event_loop().time()
-    task = asyncio.get_event_loop().call_later
+    now = middleware.loop.time()
+    task = middleware.loop.call_later
 
     if not PREV_TASK:
         if data['cdev'].startswith(DISKS):

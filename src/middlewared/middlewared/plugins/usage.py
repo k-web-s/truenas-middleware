@@ -43,7 +43,7 @@ class UsageService(Service):
             else:
                 break
 
-        event_loop = asyncio.get_event_loop()
+        event_loop = self.middleware.loop
         now = datetime.utcnow()
         scheduled = (
             now.replace(hour=23, minute=59, second=59) - now
@@ -524,7 +524,7 @@ class UsageService(Service):
 
 async def setup(middleware):
     now = datetime.utcnow()
-    event_loop = asyncio.get_event_loop()
+    event_loop = middleware.loop
 
     event_loop.call_at(
         random.uniform(1, (

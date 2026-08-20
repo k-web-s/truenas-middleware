@@ -734,7 +734,7 @@ class ShellApplication(object):
                 options = data.get('options', {})
                 options['jail'] = data.get('jail') or options.get('jail')
                 conndata.t_worker = ShellWorkerThread(
-                    ws=ws, input_queue=input_queue, loop=asyncio.get_event_loop(), options=options
+                    ws=ws, input_queue=input_queue, loop=self.middleware.loop, options=options
                 )
                 conndata.t_worker.start()
 
@@ -1154,7 +1154,7 @@ class Middleware(LoadPluginsMixin, ServiceCallMixin):
         to block the event loop indefinitely.
         Also used to run non thread safe libraries (using a ProcessPool)
         """
-        loop = asyncio.get_event_loop()
+        loop = self.loop
         return await loop.run_in_executor(pool, functools.partial(method, *args, **kwargs))
 
     async def run_in_thread(self, method, *args, **kwargs):

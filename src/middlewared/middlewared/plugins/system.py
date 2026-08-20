@@ -1286,7 +1286,7 @@ class SystemGeneralService(ConfigService):
 
         HTTP server will be restarted after `delay` seconds.
         """
-        event_loop = asyncio.get_event_loop()
+        event_loop = self.middleware.loop
         event_loop.call_later(delay, lambda: self.middleware.create_task(self.middleware.call('service.restart', 'http')))
 
     @accepts()
