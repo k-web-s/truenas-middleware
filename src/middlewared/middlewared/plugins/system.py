@@ -443,7 +443,7 @@ class SystemService(Service):
 
         DEPRECATED: Use `system.product_type`
         """
-        return (await self.product_type()) == 'CORE'
+        return True
 
     @no_auth_required
     @accepts()
@@ -451,28 +451,13 @@ class SystemService(Service):
         """
         Returns the type of the product.
 
-        CORE - TrueNAS Core, community version
-        ENTERPRISE - TrueNAS Enterprise, appliance version
-        SCALE - TrueNAS SCALE
+        This build assumes a FreeBSD, unlicensed, non-HA system, i.e. CORE.
         """
-        if self.__product_type is None:
-            if osc.IS_LINUX:
-                self.__product_type = 'SCALE'
-                return self.__product_type
-            hardware = await self.middleware.call('failover.hardware')
-            if hardware != 'MANUAL':
-                self.__product_type = 'ENTERPRISE'
-            else:
-                license = await self.middleware.run_in_thread(self._get_license)
-                self.__product_type = 'CORE' if (
-                    not license or
-                    license['model'].lower().startswith('freenas')
-                ) else 'ENTERPRISE'
-        return self.__product_type
+        return 'CORE'
 
     @private
     async def is_enterprise(self):
-        return await self.middleware.call('system.product_type') in ['ENTERPRISE', 'SCALE_ENTERPRISE']
+        return False
 
     @no_auth_required
     @accepts()
@@ -618,7 +603,7 @@ class SystemService(Service):
 
     @private
     async def is_enterprise_ix_hardware(self):
-        return await self.middleware.call('truenas.get_chassis_hardware') != 'TRUENAS-UNKNOWN'
+        return False
 
     # Sync the clock
     @private
@@ -638,17 +623,13 @@ class SystemService(Service):
     @accepts(Str('feature', enum=['DEDUP', 'FIBRECHANNEL', 'JAILS', 'VM']))
     async def feature_enabled(self, name):
         """
-        Returns whether the `feature` is enabled or not
+        Returns whether the `feature` is enabled or not.
+
+        This build assumes a non-HA, unlicensed (CORE) system.
         """
-        is_core = (await self.middleware.call('system.product_type')) == 'CORE'
-        if name == 'FIBRECHANNEL' and is_core:
+        if name == 'FIBRECHANNEL':
             return False
-        elif is_core:
-            return True
-        license = await self.middleware.run_in_thread(self._get_license)
-        if license and name in license['features']:
-            return True
-        return False
+        return True
 
     @accepts(Dict('system-reboot', Int('delay', required=False), required=False))
     @job()
