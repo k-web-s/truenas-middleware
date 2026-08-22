@@ -156,10 +156,6 @@ system_func()
 	then
 		if [ "x${ret2}" != "xSINGLE" ];
 		then
-			section_header "hactl output"
-			hactl
-			section_footer
-		else
 			echo "Non-HA TrueNAS system detected"
 		fi
 	fi
