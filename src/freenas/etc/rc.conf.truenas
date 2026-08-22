@@ -1,1 +1,1 @@
-middlewared_overlay_dirs="/usr/local/lib/middlewared_truenas"
+middlewared_overlay_dirs=""

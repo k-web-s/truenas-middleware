@@ -12,7 +12,18 @@ class Middleware(dict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self['failover.licensed'] = Mock(return_value=False)
+        self['failover.hardware'] = Mock(return_value='MANUAL')
+        self['failover.node'] = Mock(return_value='MANUAL')
+        self['failover.status'] = Mock(return_value='SINGLE')
+        self['failover.internal_interfaces'] = Mock(return_value=[])
+        self['failover.is_single_master_node'] = Mock(return_value=False)
+        self['failover.disabled_reasons'] = Mock(return_value=[])
+        self['failover.call_remote'] = Mock()
+        self['failover.config'] = Mock(return_value={'disabled': True, 'master_node': 'A', 'timeout': 0})
+        self['truenas.get_chassis_hardware'] = Mock(return_value='TRUENAS-UNKNOWN')
         self['system.is_freenas'] = Mock(return_value=True)
+        self['system.is_enterprise'] = Mock(return_value=False)
+        self['system.product_type'] = Mock(return_value='CORE')
         self.__schemas = Schemas()
 
         self.call_hook = CoroutineMock()

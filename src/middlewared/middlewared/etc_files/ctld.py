@@ -344,11 +344,6 @@ def main(middleware):
         elif target.iscsi_target_name:
             addline('\talias "%s"\n' % target.iscsi_target_name)
 
-        for fctt in middleware.call_sync('datastore.query', 'services.fibrechanneltotarget',
-                                         [('fc_target', '=', target.id)]):
-            fctt = Struct(fctt)
-            addline('\tport "%s"\n' % fctt.fc_port)
-
         for grp in middleware.call_sync('datastore.query', 'services.iscsitargetgroups',
                                         [('iscsi_target', '=', target.id)]):
             grp = Struct(grp)
