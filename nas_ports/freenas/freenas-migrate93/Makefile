@@ -9,8 +9,9 @@ MAINTAINER=	dev@ixsystems.com
 COMMENT=	Tool to upgrade from 9.X databases
 
 RUN_DEPENDS=	python>0:${PORTSDIR}/lang/python \
+		${PYTHON_PKGNAMEPREFIX}pycryptodomex>0:security/py-pycryptodomex@${PY_FLAVOR} \
 		${PYTHON_PKGNAMEPREFIX}ipaddr>0:devel/py-ipaddr@${PY_FLAVOR} \
-		${PYTHON_PKGNAMEPREFIX}lxml>0:devel/py-lxml
+		${PYTHON_PKGNAMEPREFIX}lxml>0:devel/py-lxml@${PY_FLAVOR}
 
 USES=		python
 USE_GITHUB=	yes
