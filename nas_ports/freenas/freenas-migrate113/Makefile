@@ -9,6 +9,9 @@ MAINTAINER=	dev@ixsystems.com
 COMMENT=	Tool to upgrade to 11.3 database
 
 RUN_DEPENDS=	python>0:${PORTSDIR}/lang/python \
+		${PYTHON_PKGNAMEPREFIX}ipaddr>0:devel/py-ipaddr@${PY_FLAVOR} \
+		${PYTHON_PKGNAMEPREFIX}pycryptodomex>0:security/py-pycryptodomex@${PY_FLAVOR} \
+		${PYTHON_PKGNAMEPREFIX}pyopenssl>0:security/py-pyopenssl@${PY_FLAVOR} \
 		${PYTHON_PKGNAMEPREFIX}sqlparse>0:databases/py-sqlparse@${PY_FLAVOR}
 
 USES=		python
