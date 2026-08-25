@@ -131,7 +131,8 @@ class DiskService(Service, ServiceChangeMixin):
             return
 
         _type = search.group('type')
-        _value = search.group('value').replace('\'', '%27')  # escape single quotes to html entity
+        _value_raw = search.group('value')
+        _value = _value_raw.replace('\'', '%27')  # escape single quotes to html entity
         if _type == 'uuid':
             found = next(part_xml.iterfind(f'.//config[rawuuid="{_value}"]/../../name'), None)
             if found is not None and not found.text.startswith('label'):
@@ -161,7 +162,7 @@ class DiskService(Service, ServiceChangeMixin):
             if name := list(filter(lambda x: x['disk_serial'] == _value, disks_in_db)):
                 return name[0]['disk_name']
         elif _type == 'serial_lunid':
-            info = _value.split('_')
+            info = _value_raw.split('_')
             info_len = len(info)
             if info_len < 2:
                 return
@@ -171,17 +172,16 @@ class DiskService(Service, ServiceChangeMixin):
                 # vmware nvme disks look like VMware NVME_0000_a9d1a9a7feaf1d66000c296f092d9204
                 # so we need to account for it
                 _lunid = info[-1]
-                _ident = _value[:-len(_lunid)].rstrip('_')
+                _ident = _value_raw[:-len(_lunid)].rstrip('_')
 
-            found_ident = next(disk_xml.iterfind(f'.//config[ident="{_ident}"]/../../name'), None)
-            if found_ident is not None:
-                _lunid = _lunid.replace('"', '%22')  # replace double-quote with utf8 url encoded value
-                found_lunid = next(disk_xml.iterfind(f'.//config[lunid="{_lunid}"]/../../name'), None)
-                if found_lunid is not None:
-                    # means the identifier and lunid given to us
-                    # matches a disk on the system so just return
-                    # the found `_ident` name
-                    return found_ident.text
+            # iterate over providers to find a disk whose config matches both the
+            # ident and the lunid. python's xml dont support complex XPath lookups
+            # so we iterate over providers
+            for p in disk_xml.iterfind('.//provider'):
+                for cfg in p.iterfind(f'.//config[ident="{_ident}"]'):
+                    if (lunid := cfg.find('lunid')) is not None and lunid.text == _lunid:
+                        if (name := p.find('name')) is not None:
+                            return name.text
         elif _type == 'devicename':
             if os.path.exists(f'/dev/{_value}'):
                 return _value
