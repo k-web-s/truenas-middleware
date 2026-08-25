@@ -50,7 +50,8 @@ class DiskService(Service, DiskIdentifyBase):
 
         tp = search.group('type')
         # We need to escape single quotes to html entity
-        value = search.group('value').replace("'", '%27')
+        _value_raw = search.group('value')
+        value = _value_raw.replace("'", '%27')
 
         if tp == 'uuid':
             _find = f'.//config[rawuuid = "{value}"]/../../name'
@@ -108,7 +109,7 @@ class DiskService(Service, DiskIdentifyBase):
             else:
                 xml = geom.class_by_name('DISK').xml
 
-            info = value.split('_')
+            info = _value_raw.split('_')
             info_len = len(info)
             if info_len < 2:
                 # nothing to do return
@@ -120,16 +121,16 @@ class DiskService(Service, DiskIdentifyBase):
                 # vmware nvme disks look like `VMware NVME_0000_a9d1a9a7feaf1d66000c296f092d9204`
                 # so we need to account for it
                 _lunid = info[-1]
-                _ident = value[:-len(_lunid)].rstrip('_')
+                _ident = _value_raw[:-len(_lunid)].rstrip('_')
 
-            found_ident = xml.find(f'.//provider/config[ident = "{_ident}"]/../../name')
-            if found_ident is not None:
-                found_lunid = xml.find(f'.//provider/config[lunid = "{_lunid}"]/../../name')
-                if found_lunid is not None:
-                    # means the identifier and lunid given to us
-                    # matches a disk on the system so just return
-                    # the found_ident name
-                    return found_ident.text
+            # iterate over providers to find a disk whose config matches both the
+            # ident and the lunid. python's xml dont support complex XPath lookups
+            # so we iterate over providers
+            for p in xml.iterfind('.//provider'):
+                for cfg in p.iterfind(f'.//config[ident = "{_ident}"]'):
+                    if (lunid := cfg.find('lunid')) is not None and lunid.text == _lunid:
+                        if (name := p.find('name')) is not None:
+                            return name.text
 
         elif tp == 'devicename':
             if os.path.exists(f'/dev/{value}'):
