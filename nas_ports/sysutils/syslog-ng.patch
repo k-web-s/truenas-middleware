@@ -1,0 +1,11 @@
+--- Makefile
++++ Makefile
+@@ -64,7 +64,7 @@ CONFIGURE_ARGS=	--sysconfdir=${LOCALBASE}/etc --localstatedir=/var/db \
+ 		--enable-dynamic-linking --disable-manpages-install \
+ 		--disable-linux-caps \
+ 		--datadir=${PREFIX}/share/ --with-ivykis=system \
+-		--with-python=${PYTHON_VER} --with-python-packages=none
++		--with-python=${PYTHON_BASEVER} --with-python-packages=none
+ 
+ CONFIGURE_ENV+=		OPENSSL_CFLAGS="-I${OPENSSLINC}" \
+ 			OPENSSL_LIBS="-L${OPENSSLLIB} -lcrypto -lssl"

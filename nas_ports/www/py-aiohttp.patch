@@ -1,0 +1,12 @@
+--- Makefile
++++ Makefile
+@@ -42,8 +42,7 @@ TEST_DEPENDS=	${PYTHON_PKGNAMEPREFIX}aiodns>=3.3.0:dns/py-aiodns@${PY_FLAVOR} \
+ USES=		cpe python
+ USE_PYTHON=	autoplist concurrent cython pep517 pytest
+ 
+-MAKE_ENV=	AIOHTTP_CYTHON_TRACE=1 \
+-		USE_SYSTEM_DEPS=1
++MAKE_ENV=	USE_SYSTEM_DEPS=1
+ 
+ OPTIONS_DEFINE=	SPEEDUPS
+ SPEEDUPS_DESC=	Performance speedups

@@ -1,0 +1,280 @@
+--- pkg-plist
++++ pkg-plist
+@@ -430,8 +430,8 @@ libexec/samba/samba-dcerpcd
+ @comment Use bundled libraries
+ %%BUNDLED_CMOCKA%%%%SAMBA4_LIBDIR%%/private/libcmocka-private-samba.so
+ %%PYTHON3%%%%PYTHON_SITELIBDIR%%/_ldb_text.py
+-%%PYTHON3%%%%PYTHON_SITELIBDIR%%/ldb%%PYTHON_TAG%%.so
+-%%PYTHON3%%%%SAMBA4_LIBDIR%%/private/libpyldb-util%%PYTHON_TAG%%-private-samba.so
++%%PYTHON3%%%%PYTHON_SITELIBDIR%%/ldb%%PYTHON_SOABI%%.so
++%%PYTHON3%%%%SAMBA4_LIBDIR%%/private/libpyldb-util%%PYTHON_SOABI%%-private-samba.so
+ bin/ldbadd
+ bin/ldbdel
+ bin/ldbedit
+@@ -464,17 +464,17 @@ bin/ldbsearch
+ %%MANPAGES%%%%BUNDLED_TDB%%share/man/man8/samba-tdbdump.8.gz
+ %%MANPAGES%%%%BUNDLED_TDB%%share/man/man8/samba-tdbrestore.8.gz
+ %%MANPAGES%%%%BUNDLED_TDB%%share/man/man8/samba-tdbtool.8.gz
+-%%BUNDLED_TALLOC%%%%PYTHON3%%%%PYTHON_SITELIBDIR%%/talloc%%PYTHON_TAG%%.so
+-%%BUNDLED_TALLOC%%%%PYTHON3%%%%SAMBA4_LIBDIR%%/private/libpytalloc-util%%PYTHON_TAG%%-private-samba.so
++%%BUNDLED_TALLOC%%%%PYTHON3%%%%PYTHON_SITELIBDIR%%/talloc%%PYTHON_SOABI%%.so
++%%BUNDLED_TALLOC%%%%PYTHON3%%%%SAMBA4_LIBDIR%%/private/libpytalloc-util%%PYTHON_SOABI%%-private-samba.so
+ %%BUNDLED_TALLOC%%%%SAMBA4_LIBDIR%%/private/libtalloc-private-samba.so
+ %%MANPAGES%%%%BUNDLED_TALLOC%%share/man/man3/samba-talloc.3.gz
+ %%BUNDLED_TDB%%%%PYTHON3%%%%PYTHON_SITELIBDIR%%/_tdb_text.py
+-%%BUNDLED_TDB%%%%PYTHON3%%%%PYTHON_SITELIBDIR%%/tdb%%PYTHON_TAG%%.so
++%%BUNDLED_TDB%%%%PYTHON3%%%%PYTHON_SITELIBDIR%%/tdb%%PYTHON_SOABI%%.so
+ %%BUNDLED_TDB%%bin/tdbbackup
+ %%BUNDLED_TDB%%bin/tdbdump
+ %%BUNDLED_TDB%%bin/tdbrestore
+ %%BUNDLED_TDB%%bin/tdbtool
+ %%BUNDLED_TDB%%%%SAMBA4_LIBDIR%%/private/libtdb-private-samba.so
+-%%BUNDLED_TEVENT%%%%PYTHON3%%%%PYTHON_SITELIBDIR%%/_tevent%%PYTHON_TAG%%.so
++%%BUNDLED_TEVENT%%%%PYTHON3%%%%PYTHON_SITELIBDIR%%/_tevent%%PYTHON_SOABI%%.so
+ %%BUNDLED_TEVENT%%%%PYTHON3%%%%PYTHON_SITELIBDIR%%/tevent.py
+ %%BUNDLED_TEVENT%%%%SAMBA4_LIBDIR%%/private/libtevent-private-samba.so
+--- pkg-plist.python
++++ pkg-plist.python
+@@ -2,78 +2,78 @@ bin/smbtorture
+ sbin/samba-gpupdate
+ %%MANPAGES%%share/man/man1/smbtorture.1.gz
+ %%MANPAGES%%share/man/man8/samba-gpupdate.8.gz
+-lib/samba4/private/libsamba-net-join%%PYTHON_TAG%%-private-samba.so
+-lib/samba4/private/libsamba-python%%PYTHON_TAG%%-private-samba.so
++lib/samba4/private/libsamba-net-join%%PYTHON_SOABI%%-private-samba.so
++lib/samba4/private/libsamba-python%%PYTHON_SOABI%%-private-samba.so
+ @comment Python block
+-%%AD_DC%%%%PYTHON_SITELIBDIR%%/samba/dckeytab%%PYTHON_TAG%%.so
+-%%AD_DC%%%%PYTHON_SITELIBDIR%%/samba/posix_eadb%%PYTHON_TAG%%.so
+-%%AD_DC%%%%PYTHON_SITELIBDIR%%/samba/xattr_native%%PYTHON_TAG%%.so
+-%%AD_DC%%%%PYTHON_SITELIBDIR%%/samba/xattr_tdb%%PYTHON_TAG%%.so
+-%%AD_DC%%%%PYTHON_SITELIBDIR%%/samba/dsdb_dns%%PYTHON_TAG%%.so
+-%%AD_DC%%%%PYTHON_SITELIBDIR%%/samba/dsdb%%PYTHON_TAG%%.so
++%%AD_DC%%%%PYTHON_SITELIBDIR%%/samba/dckeytab%%PYTHON_SOABI%%.so
++%%AD_DC%%%%PYTHON_SITELIBDIR%%/samba/posix_eadb%%PYTHON_SOABI%%.so
++%%AD_DC%%%%PYTHON_SITELIBDIR%%/samba/xattr_native%%PYTHON_SOABI%%.so
++%%AD_DC%%%%PYTHON_SITELIBDIR%%/samba/xattr_tdb%%PYTHON_SOABI%%.so
++%%AD_DC%%%%PYTHON_SITELIBDIR%%/samba/dsdb_dns%%PYTHON_SOABI%%.so
++%%AD_DC%%%%PYTHON_SITELIBDIR%%/samba/dsdb%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/__init__.py
+-%%PYTHON_SITELIBDIR%%/samba/_glue%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/_ldb%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/auth%%PYTHON_TAG%%.so
++%%PYTHON_SITELIBDIR%%/samba/_glue%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/_ldb%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/auth%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/auth_util.py
+ %%PYTHON_SITELIBDIR%%/samba/colour.py
+ %%PYTHON_SITELIBDIR%%/samba/common.py
+-%%PYTHON_SITELIBDIR%%/samba/compression%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/credentials%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/crypto%%PYTHON_TAG%%.so
++%%PYTHON_SITELIBDIR%%/samba/compression%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/credentials%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/crypto%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/dbchecker.py
+ %%PYTHON_SITELIBDIR%%/samba/dcerpc/__init__.py
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/atsvc%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/auth%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/base%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/bcrypt_rsakey_blob%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/claims%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/conditional_ace%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/dcerpc%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/dfs%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/dns%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/dnsp%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/dnsserver%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/drsblobs%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/drsuapi%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/echo%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/epmapper%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/gkdi%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/gmsa%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/idmap%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/initshutdown%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/irpc%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/keycredlink%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/krb5ccache%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/krb5pac%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/lsa%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/mdssvc%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/messaging%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/mgmt%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/misc%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/nbt%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/netlogon%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/ntlmssp%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/preg%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/samr%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/schannel%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/security%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/server_id%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/smb3posix%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/smbXsrv%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/smb_acl%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/spoolss%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/srvsvc%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/svcctl%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/tpm20_rsakey_blob%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/unixinfo%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/winbind%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/windows_event_ids%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/winreg%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/winspool%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/witness%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/wkssvc%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/dcerpc/xattr%%PYTHON_TAG%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/atsvc%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/auth%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/base%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/bcrypt_rsakey_blob%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/claims%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/conditional_ace%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/dcerpc%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/dfs%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/dns%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/dnsp%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/dnsserver%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/drsblobs%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/drsuapi%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/echo%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/epmapper%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/gkdi%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/gmsa%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/idmap%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/initshutdown%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/irpc%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/keycredlink%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/krb5ccache%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/krb5pac%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/lsa%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/mdssvc%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/messaging%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/mgmt%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/misc%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/nbt%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/netlogon%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/ntlmssp%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/preg%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/samr%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/schannel%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/security%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/server_id%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/smb3posix%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/smbXsrv%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/smb_acl%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/spoolss%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/srvsvc%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/svcctl%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/tpm20_rsakey_blob%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/unixinfo%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/winbind%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/windows_event_ids%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/winreg%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/winspool%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/witness%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/wkssvc%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/dcerpc/xattr%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/domain/__init__.py
+ %%PYTHON_SITELIBDIR%%/samba/domain/models/__init__.py
+ %%PYTHON_SITELIBDIR%%/samba/domain/models/auth_policy.py
+@@ -107,7 +107,7 @@ lib/samba4/private/libsamba-python%%PYTHON_TAG%%-private-samba.so
+ %%PYTHON_SITELIBDIR%%/samba/emulate/traffic_packets.py
+ %%PYTHON_SITELIBDIR%%/samba/forest_update.py
+ %%PYTHON_SITELIBDIR%%/samba/functional_level.py
+-%%PYTHON_SITELIBDIR%%/samba/gensec%%PYTHON_TAG%%.so
++%%PYTHON_SITELIBDIR%%/samba/gensec%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/getopt.py
+ %%PYTHON_SITELIBDIR%%/samba/gkdi.py
+ %%PYTHON_SITELIBDIR%%/samba/gp/__init__.py
+@@ -141,10 +141,10 @@ lib/samba4/private/libsamba-python%%PYTHON_TAG%%-private-samba.so
+ %%PYTHON_SITELIBDIR%%/samba/gp_parse/gp_inf.py
+ %%PYTHON_SITELIBDIR%%/samba/gp_parse/gp_ini.py
+ %%PYTHON_SITELIBDIR%%/samba/gp_parse/gp_pol.py
+-%%PYTHON_SITELIBDIR%%/samba/gpo%%PYTHON_TAG%%.so
++%%PYTHON_SITELIBDIR%%/samba/gpo%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/graph.py
+ %%PYTHON_SITELIBDIR%%/samba/hostconfig.py
+-%%PYTHON_SITELIBDIR%%/samba/hresult%%PYTHON_TAG%%.so
++%%PYTHON_SITELIBDIR%%/samba/hresult%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/idmap.py
+ %%PYTHON_SITELIBDIR%%/samba/join.py
+ %%PYTHON_SITELIBDIR%%/samba/kcc/__init__.py
+@@ -156,15 +156,15 @@ lib/samba4/private/libsamba-python%%PYTHON_TAG%%-private-samba.so
+ %%PYTHON_SITELIBDIR%%/samba/logger.py
+ %%PYTHON_SITELIBDIR%%/samba/lsa_utils.py
+ %%PYTHON_SITELIBDIR%%/samba/mdb_util.py
+-%%PYTHON_SITELIBDIR%%/samba/messaging%%PYTHON_TAG%%.so
++%%PYTHON_SITELIBDIR%%/samba/messaging%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/ms_display_specifiers.py
+ %%PYTHON_SITELIBDIR%%/samba/ms_forest_updates_markdown.py
+ %%PYTHON_SITELIBDIR%%/samba/ms_schema.py
+ %%PYTHON_SITELIBDIR%%/samba/ms_schema_markdown.py
+ %%PYTHON_SITELIBDIR%%/samba/ndr.py
+-%%PYTHON_SITELIBDIR%%/samba/net%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/net_s3%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/netbios%%PYTHON_TAG%%.so
++%%PYTHON_SITELIBDIR%%/samba/net%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/net_s3%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/netbios%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/netcmd/__init__.py
+ %%PYTHON_SITELIBDIR%%/samba/netcmd/common.py
+ %%PYTHON_SITELIBDIR%%/samba/netcmd/computer.py
+@@ -260,34 +260,34 @@ lib/samba4/private/libsamba-python%%PYTHON_TAG%%-private-samba.so
+ %%PYTHON_SITELIBDIR%%/samba/netcmd/visualize.py
+ %%PYTHON_SITELIBDIR%%/samba/nt_time.py
+ %%PYTHON_SITELIBDIR%%/samba/ntacls.py
+-%%PYTHON_SITELIBDIR%%/samba/ntstatus%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/param%%PYTHON_TAG%%.so
++%%PYTHON_SITELIBDIR%%/samba/ntstatus%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/param%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/policies.py
+-%%PYTHON_SITELIBDIR%%/samba/policy%%PYTHON_TAG%%.so
++%%PYTHON_SITELIBDIR%%/samba/policy%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/provision/__init__.py
+ %%PYTHON_SITELIBDIR%%/samba/provision/backend.py
+ %%PYTHON_SITELIBDIR%%/samba/provision/common.py
+ %%PYTHON_SITELIBDIR%%/samba/provision/kerberos.py
+ %%PYTHON_SITELIBDIR%%/samba/provision/kerberos_implementation.py
+ %%PYTHON_SITELIBDIR%%/samba/provision/sambadns.py
+-%%PYTHON_SITELIBDIR%%/samba/registry%%PYTHON_TAG%%.so
++%%PYTHON_SITELIBDIR%%/samba/registry%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/remove_dc.py
+-%%PYTHON_SITELIBDIR%%/samba/reparse_symlink%%PYTHON_TAG%%.so
++%%PYTHON_SITELIBDIR%%/samba/reparse_symlink%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/safe_tarfile.py
+ %%PYTHON_SITELIBDIR%%/samba/samba3/__init__.py
+-%%PYTHON_SITELIBDIR%%/samba/samba3/libsmb_samba_cwrapper%%PYTHON_TAG%%.so
++%%PYTHON_SITELIBDIR%%/samba/samba3/libsmb_samba_cwrapper%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/samba3/libsmb_samba_internal.py
+-%%PYTHON_SITELIBDIR%%/samba/samba3/mdscli%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/samba3/param%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/samba3/passdb%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/samba3/smbconf%%PYTHON_TAG%%.so
+-%%PYTHON_SITELIBDIR%%/samba/samba3/smbd%%PYTHON_TAG%%.so
++%%PYTHON_SITELIBDIR%%/samba/samba3/mdscli%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/samba3/param%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/samba3/passdb%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/samba3/smbconf%%PYTHON_SOABI%%.so
++%%PYTHON_SITELIBDIR%%/samba/samba3/smbd%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/samdb.py
+ %%PYTHON_SITELIBDIR%%/samba/schema.py
+ %%PYTHON_SITELIBDIR%%/samba/sd_utils.py
+-%%PYTHON_SITELIBDIR%%/samba/security%%PYTHON_TAG%%.so
++%%PYTHON_SITELIBDIR%%/samba/security%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/sites.py
+-%%PYTHON_SITELIBDIR%%/samba/smbconf%%PYTHON_TAG%%.so
++%%PYTHON_SITELIBDIR%%/samba/smbconf%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/subnets.py
+ %%PYTHON_SITELIBDIR%%/samba/subunit/__init__.py
+ %%PYTHON_SITELIBDIR%%/samba/subunit/run.py
+@@ -592,7 +592,7 @@ lib/samba4/private/libsamba-python%%PYTHON_TAG%%-private-samba.so
+ %%PYTHON_SITELIBDIR%%/samba/upgrade.py
+ %%PYTHON_SITELIBDIR%%/samba/upgradehelpers.py
+ %%PYTHON_SITELIBDIR%%/samba/uptodateness.py
+-%%PYTHON_SITELIBDIR%%/samba/werror%%PYTHON_TAG%%.so
++%%PYTHON_SITELIBDIR%%/samba/werror%%PYTHON_SOABI%%.so
+ %%PYTHON_SITELIBDIR%%/samba/xattr.py
+ @dir %%PYTHON_SITELIBDIR%%/samba/tests/samba_tool
+ @dir %%PYTHON_SITELIBDIR%%/samba/tests/ndr
