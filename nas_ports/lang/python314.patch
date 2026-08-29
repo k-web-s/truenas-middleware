@@ -1,0 +1,42 @@
+--- Makefile
++++ Makefile
+@@ -53,8 +53,8 @@ PLIST_SUB=		ABI=${ABIFLAGS} \
+ 			DISTVERSION=${DISTVERSION} \
+ 			OSMAJOR=${OSVERSION:C/([0-9]*)[0-9]{5}/\1/}		# For plat-freebsd* in pkg-plist. https://bugs.python.org/issue19554
+ 
+-OPTIONS_DEFINE=		DEBUG IPV6 LIBMPDEC LTO NLS PYMALLOC
+-OPTIONS_DEFAULT=	LIBMPDEC LTO PYMALLOC
++OPTIONS_DEFINE=		DEBUG IPV6 LIBMPDEC LTO NLS PYMALLOC MIMALLOC
++OPTIONS_DEFAULT=	LIBMPDEC LTO
+ OPTIONS_EXCLUDE_riscv64=	LTO
+ OPTIONS_RADIO=		HASH
+ OPTIONS_RADIO_HASH=	FNV SIPHASH
+@@ -95,6 +95,7 @@ NLS_LIBS=		-L${LOCALBASE}/lib -lintl
+ NLS_CONFIGURE_ENV_OFF=	ac_cv_lib_intl_textdomain=no ac_cv_header_libintl_h=no
+ 
+ PYMALLOC_CONFIGURE_WITH=	pymalloc
++MIMALLOC_CONFIGURE_WITH=	mimalloc
+ 
+ MASTERDIR?=	${.CURDIR}
+ CONFLICTS_INSTALL?=	python314t
+--- pkg-plist
++++ pkg-plist
+@@ -86,12 +86,12 @@ bin/python%%PYTHON_BASEVER%%-config
+ %%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/frameobject.h
+ %%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/genericaliasobject.h
+ %%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/import.h
+-%%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/internal/mimalloc/mimalloc.h
+-%%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/internal/mimalloc/mimalloc/atomic.h
+-%%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/internal/mimalloc/mimalloc/internal.h
+-%%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/internal/mimalloc/mimalloc/prim.h
+-%%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/internal/mimalloc/mimalloc/track.h
+-%%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/internal/mimalloc/mimalloc/types.h
++%%MIMALLOC%%%%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/internal/mimalloc/mimalloc.h
++%%MIMALLOC%%%%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/internal/mimalloc/mimalloc/atomic.h
++%%MIMALLOC%%%%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/internal/mimalloc/mimalloc/internal.h
++%%MIMALLOC%%%%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/internal/mimalloc/mimalloc/prim.h
++%%MIMALLOC%%%%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/internal/mimalloc/mimalloc/track.h
++%%MIMALLOC%%%%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/internal/mimalloc/mimalloc/types.h
+ %%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/internal/pycore_abstract.h
+ %%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/internal/pycore_asdl.h
+ %%PYTHON_BASEINCLUDEDIR%%%%THREAD%%%%ABI%%/internal/pycore_ast.h
