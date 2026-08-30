@@ -235,7 +235,7 @@ class RRDBase(object, metaclass=RRDMeta):
 
         if self.aggregations and aggregate:
             # Transpose the data matrix and remove null values
-            transposed = [list(filter(None.__ne__, i)) for i in zip(*data['data'])]
+            transposed = [[x for x in i if x is not None] for i in zip(*data['data'])]
             for agg in self.aggregations:
                 if agg in self.AGG_MAP:
                     data['aggregations'][agg] = [
