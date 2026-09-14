@@ -378,8 +378,17 @@ class FileApplication(object):
         self.jobs[job_id].cancel()
         del self.jobs[job_id]
 
-        job = self.middleware.jobs[job_id]
-        await job.pipes.close()
+        # The job may already have been evicted from JobsDeque (maxlen);
+        # its pipes must still be closed so fds/ramfs files don't leak.
+        job = self.middleware.jobs.get(job_id)
+        if job is None:
+            return
+        try:
+            await job.pipes.close()
+        except Exception:
+            self.middleware.logger.warning(
+                'Failed to close pipes for job %r', job_id, exc_info=True
+            )
 
     async def download(self, request):
         path = request.path.split('/')
@@ -530,8 +539,19 @@ class FileApplication(object):
                 pass
 
         try:
-            job = await self.middleware.call(data['method'], *(data.get('params') or []),
-                                             pipes=Pipes(input=self.middleware.pipe()))
+            input_pipe = self.middleware.pipe()
+            try:
+                job = await self.middleware.call(data['method'], *(data.get('params') or []),
+                                                 pipes=Pipes(input=input_pipe))
+            except Exception:
+                # The call failed before copy() could run: neither side owns
+                # the pipe yet, so close it here instead of leaking it
+                # until eviction/GC.
+                try:
+                    await input_pipe.close()
+                except Exception:
+                    pass
+                raise
             await self.middleware.run_in_thread(copy)
         except CallError as e:
             if e.errno == CallError.ENOMETHOD:
