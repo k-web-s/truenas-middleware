@@ -492,6 +492,18 @@ class Job(object):
                 os.unlink(self.logs_path)
             except Exception:
                 pass
+        # Jobs can be evicted from JobsDeque (or expire) with pipes still
+        # open if the consumer never fetched them (e.g. an unfetched
+        # core.download). Close both ends here so eviction is self-cleaning
+        # instead of depending on cyclic GC to release fds and ramfs files.
+        # NOTE: raw closes, not the async Pipe.close(): this method is
+        # synchronous (no loop access); close(2) itself does not block.
+        for pipe in self.pipes:
+            for end in (pipe.r, pipe.w):
+                try:
+                    end.close()
+                except Exception:
+                    pass
 
 
 class JobProgressBuffer:
