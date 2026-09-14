@@ -664,7 +664,10 @@ class Resource(object):
                         break
                     asyncio.run_coroutine_threadsafe(resp.write(read), loop=loop).result()
 
-            await self.middleware.run_in_thread(do_copy)
+            try:
+                await self.middleware.run_in_thread(do_copy)
+            finally:
+                await download_pipe.close()
 
             await resp.drain()
             return resp
