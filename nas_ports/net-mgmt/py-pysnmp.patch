@@ -1,0 +1,57 @@
+--- Makefile
++++ Makefile
+@@ -1,39 +1,25 @@
+ PORTNAME=	pysnmp
+-PORTVERSION=	4.4.9
+-PORTREVISION=	3
++PORTVERSION=	7.1.29
+ CATEGORIES=	net-mgmt python
+ MASTER_SITES=	PYPI \
+ 		SF/pysnmp/pysnmp/${PORTVERSION}
+ PKGNAMEPREFIX=	${PYTHON_PKGNAMEPREFIX}
+ 
+-MAINTAINER=	mhjacks@swbell.net
++MAINTAINER=	richard@kojedz.in
+ COMMENT=	SNMP framework for Python
+-WWW=		https://github.com/etingof/pysnmp
++WWW=		https://github.com/lextudio/pysnmp.git
+ 
+ LICENSE=	BSD2CLAUSE
+ 
++BUILD_DEPENDS=	${PYTHON_PKGNAMEPREFIX}flit-core>=3.2:devel/py-flit-core@${PY_FLAVOR}
++
+ RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}pyasn1>=0.2.3:devel/py-pyasn1@${PY_FLAVOR} \
+ 		${PYTHON_PKGNAMEPREFIX}pycryptodomex>=0:security/py-pycryptodomex@${PY_FLAVOR} \
+ 		${PYTHON_PKGNAMEPREFIX}pysmi>=0:net-mgmt/py-pysmi@${PY_FLAVOR}
+ 
+ USES=		python
+-USE_PYTHON=	distutils autoplist
++USE_PYTHON=	autoplist pep517
+ 
+ NO_ARCH=	yes
+ 
+-EXAMPLESDIR=	${PREFIX}/share/examples/${PYTHON_PKGNAMEPREFIX}${PORTNAME}
+-DOCSDIR=	${PREFIX}/share/doc/${PYTHON_PKGNAMEPREFIX}${PORTNAME}
+-
+-PORTDOCS=	*
+-PORTEXAMPLES=	*
+-
+-OPTIONS_DEFINE=	DOCS EXAMPLES
+-
+-post-install:
+-	${MKDIR} ${STAGEDIR}${DOCSDIR}
+-	(cd ${WRKSRC}/docs/source/docs && \
+-	    ${COPYTREE_SHARE} . ${STAGEDIR}${DOCSDIR})
+-	${MKDIR} ${STAGEDIR}${EXAMPLESDIR}
+-	(cd ${WRKSRC}/examples && ${COPYTREE_SHARE} . ${STAGEDIR}${EXAMPLESDIR})
+-
+ .include <bsd.port.mk>
+--- distinfo
++++ distinfo
+@@ -1,3 +1,3 @@
+-TIMESTAMP = 1551309767
+-SHA256 (pysnmp-4.4.9.tar.gz) = d5d1e59780126e963dd92e25993b783295734e71bef181f602e51f7393260441
+-SIZE (pysnmp-4.4.9.tar.gz) = 436017
++TIMESTAMP = 1789857188
++SHA256 (pysnmp-7.1.29.tar.gz) = d0da6726c4d35b1e57027c98e2065928656b0cc5d3ce5a60b3535e1825cc60ee
++SIZE (pysnmp-7.1.29.tar.gz) = 268583
