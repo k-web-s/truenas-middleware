@@ -4,8 +4,7 @@ import threading
 import time
 import libzfs
 import netsnmpagent
-import pysnmp.hlapi  # noqa
-import pysnmp.smi
+import pysnmp.smi.builder
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -215,11 +214,11 @@ def get_zfs_arc_miss_percent(kstat):
 
 
 mib_builder = pysnmp.smi.builder.MibBuilder()
-mib_sources = mib_builder.getMibSources() + (pysnmp.smi.builder.DirMibSource("/usr/local/share/pysnmp/mibs"),)
-mib_builder.setMibSources(*mib_sources)
-mib_builder.loadModules("FREENAS-MIB")
-mib_builder.loadModules("LM-SENSORS-MIB")
-zpool_health_type = mib_builder.importSymbols("FREENAS-MIB", "ZPoolHealthType")[0]
+mib_sources = mib_builder.get_mib_sources() + (pysnmp.smi.builder.DirMibSource("/usr/local/share/pysnmp/mibs"),)
+mib_builder.set_mib_sources(*mib_sources)
+mib_builder.load_modules("FREENAS-MIB")
+mib_builder.load_modules("LM-SENSORS-MIB")
+zpool_health_type = mib_builder.import_symbols("FREENAS-MIB", "ZPoolHealthType")[0]
 
 agent = netsnmpagent.netsnmpAgent(
     AgentName="FreeNASAgent",

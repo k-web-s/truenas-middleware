@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # License: BSD
 
+import asyncio
 import os
 import sys
 from time import sleep
 
 import pytest
-from pysnmp.hlapi import (CommunityData, ContextData, ObjectIdentity,
-                          ObjectType, SnmpEngine, UdpTransportTarget, getCmd)
+from pysnmp.hlapi import asyncio as hlapi
 from pytest_dependency import depends
 
 apifolder = os.getcwd()
@@ -33,12 +33,16 @@ PASSWORD = 'testing1234'
 
 
 def get_sysname(hostip, community):
-    iterator = getCmd(SnmpEngine(),
-                      CommunityData(community),
-                      UdpTransportTarget((hostip, 161)),
-                      ContextData(),
-                      ObjectType(ObjectIdentity('SNMPv2-MIB', 'sysName', 0)))
-    errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
+    async def _get_sysname():
+        with hlapi.SnmpEngine() as snmp_engine:
+            return await hlapi.get_cmd(
+                snmp_engine,
+                hlapi.CommunityData(community),
+                await hlapi.UdpTransportTarget.create((hostip, 161)),
+                hlapi.ContextData(),
+                hlapi.ObjectType(hlapi.ObjectIdentity('SNMPv2-MIB', 'sysName', 0)))
+
+    errorIndication, errorStatus, errorIndex, varBinds = asyncio.run(_get_sysname())
     assert errorIndication is None, errorIndication
     assert errorStatus == 0, errorStatus
     value = str(varBinds[0])
