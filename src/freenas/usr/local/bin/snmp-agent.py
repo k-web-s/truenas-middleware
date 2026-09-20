@@ -6,7 +6,6 @@ import libzfs
 import netsnmpagent
 import pysnmp.smi.builder
 from collections import defaultdict
-from datetime import datetime, timedelta
 
 import sysctl
 from middlewared.client import Client
@@ -506,11 +505,11 @@ if __name__ == "__main__":
 
     agent.start()
 
-    last_update_at = datetime.min
+    last_update_at = 0
     while True:
         agent.check_and_process()
 
-        if datetime.utcnow() - last_update_at > timedelta(seconds=1):
+        if time.monotonic() - last_update_at > 1:
             zpool_io_overall, zpool_io_1sec = zpool_io_thread.get_values()
 
             datasets = []
@@ -644,4 +643,4 @@ if __name__ == "__main__":
             if zilstat_10_thread:
                 zfs_zilstat_ops10.update(zilstat_10_thread.value)
 
-            last_update_at = datetime.utcnow()
+            last_update_at = time.monotonic()
