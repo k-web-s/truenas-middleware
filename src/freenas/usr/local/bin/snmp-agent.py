@@ -475,6 +475,12 @@ class DiskTempThread(threading.Thread):
             time.sleep(self.interval)
 
 
+def _flatten(datasets):
+    for ds in datasets:
+        yield ds
+        yield from _flatten(ds.pop('children', []))
+
+
 if __name__ == "__main__":
     with Client() as c:
         config = c.call("snmp.config")
@@ -512,8 +518,6 @@ if __name__ == "__main__":
         if time.monotonic() - last_update_at > 1:
             zpool_io_overall, zpool_io_1sec = zpool_io_thread.get_values()
 
-            datasets = []
-            zvols = []
             zpool_table.clear()
             for i, zpool in enumerate(zfs.pools):
                 row = zpool_table.addRow([agent.Integer32(i + 1)])
@@ -548,52 +552,54 @@ if __name__ == "__main__":
                 row.setRowCell(14, agent.Counter64(zpool_io_1sec[zpool.name]["read_bytes"]))
                 row.setRowCell(15, agent.Counter64(zpool_io_1sec[zpool.name]["write_bytes"]))
 
-                for dataset in zpool.root_dataset.children_recursive:
-                    if dataset.type == libzfs.DatasetType.FILESYSTEM:
-                        datasets.append(dataset)
-                    if dataset.type == libzfs.DatasetType.VOLUME:
-                        zvols.append(dataset)
-
             dataset_table.clear()
-            for i, dataset in enumerate(datasets):
-                row = dataset_table.addRow([agent.Integer32(i + 1)])
-                row.setRowCell(1, agent.Integer32(i + 1))
-                row.setRowCell(2, agent.DisplayString(dataset.properties["name"].value))
-                allocation_units, (
-                    size,
-                    used,
-                    available
-                ) = calculate_allocation_units(
-                    int(dataset.properties["used"].rawvalue) + int(dataset.properties["available"].rawvalue),
-                    int(dataset.properties["used"].rawvalue),
-                    int(dataset.properties["available"].rawvalue),
-                )
-                row.setRowCell(3, agent.Integer32(allocation_units))
-                row.setRowCell(4, agent.Integer32(size))
-                row.setRowCell(5, agent.Integer32(used))
-                row.setRowCell(6, agent.Integer32(available))
-
             zvol_table.clear()
-            for i, zvol in enumerate(zvols):
-                row = zvol_table.addRow([agent.Integer32(i + 1)])
-                row.setRowCell(1, agent.Integer32(i + 1))
-                row.setRowCell(2, agent.DisplayString(zvol.properties["name"].value))
-                allocation_units, (
-                    volsize,
-                    used,
-                    available,
-                    referenced
-                ) = calculate_allocation_units(
-                    int(zvol.properties["volsize"].rawvalue),
-                    int(zvol.properties["used"].rawvalue),
-                    int(zvol.properties["available"].rawvalue),
-                    int(zvol.properties["referenced"].rawvalue),
-                )
-                row.setRowCell(3, agent.Integer32(allocation_units))
-                row.setRowCell(4, agent.Integer32(volsize))
-                row.setRowCell(5, agent.Integer32(used))
-                row.setRowCell(6, agent.Integer32(available))
-                row.setRowCell(7, agent.Integer32(referenced))
+            dataset_index = 0
+            zvol_index = 0
+
+            for dataset in _flatten(zfs.datasets_serialized(
+                props=['used', 'available', 'referenced', 'volsize'],
+                )):
+                if dataset['type'] == 'FILESYSTEM':
+                    dataset_index += 1
+                    row = dataset_table.addRow([agent.Integer32(dataset_index)])
+                    row.setRowCell(1, agent.Integer32(dataset_index))
+                    row.setRowCell(2, agent.DisplayString(dataset["name"]))
+                    allocation_units, (
+                        size,
+                        used,
+                        available
+                    ) = calculate_allocation_units(
+                        int(dataset["properties"]["used"]["rawvalue"]) + int(dataset["properties"]["available"]["rawvalue"]),
+                        int(dataset["properties"]["used"]["rawvalue"]),
+                        int(dataset["properties"]["available"]["rawvalue"]),
+                    )
+                    row.setRowCell(3, agent.Integer32(allocation_units))
+                    row.setRowCell(4, agent.Integer32(size))
+                    row.setRowCell(5, agent.Integer32(used))
+                    row.setRowCell(6, agent.Integer32(available))
+
+                elif dataset['type'] == 'VOLUME':
+                    zvol_index += 1
+                    row = zvol_table.addRow([agent.Integer32(zvol_index)])
+                    row.setRowCell(1, agent.Integer32(zvol_index))
+                    row.setRowCell(2, agent.DisplayString(dataset["name"]))
+                    allocation_units, (
+                        volsize,
+                        used,
+                        available,
+                        referenced
+                    ) = calculate_allocation_units(
+                        int(dataset["properties"]["volsize"]["rawvalue"]),
+                        int(dataset["properties"]["used"]["rawvalue"]),
+                        int(dataset["properties"]["available"]["rawvalue"]),
+                        int(dataset["properties"]["referenced"]["rawvalue"]),
+                    )
+                    row.setRowCell(3, agent.Integer32(allocation_units))
+                    row.setRowCell(4, agent.Integer32(volsize))
+                    row.setRowCell(5, agent.Integer32(used))
+                    row.setRowCell(6, agent.Integer32(available))
+                    row.setRowCell(7, agent.Integer32(referenced))
 
             if lm_sensors_table:
                 lm_sensors_table.clear()
