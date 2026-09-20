@@ -518,7 +518,7 @@ if __name__ == "__main__":
             for i, zpool in enumerate(zfs.pools):
                 row = zpool_table.addRow([agent.Integer32(i + 1)])
                 row.setRowCell(1, agent.Integer32(i + 1))
-                row.setRowCell(2, agent.DisplayString(zpool.properties["name"].value))
+                row.setRowCell(2, agent.DisplayString(zpool.name))
                 try:
                     allocation_units, \
                         (
