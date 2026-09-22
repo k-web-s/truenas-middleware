@@ -65,7 +65,7 @@ def generate_syslog_remote_destination(middleware, advanced_config):
             result += "));"
         else:
             transport = advanced_config["syslog_transport"].lower()
-            result += f'{transport}("{host}" port({port}) localport(514));'
+            result += f'network("{host}" port({port}) transport("{transport}") localport(514));'
 
         result += ' };\n'
         result += f'log {{ source(src); filter({advanced_config["sysloglevel"].lower()});'
@@ -138,7 +138,7 @@ def generate_ha_syslog(middleware):
         #
         source this_controller {{
             network(
-                localip("{controller_ip}")
+                ip("{controller_ip}")
                 port({controller_port})
                 transport("udp")
                 default-facility(syslog)

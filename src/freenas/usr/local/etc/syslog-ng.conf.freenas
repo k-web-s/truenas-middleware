@@ -1,16 +1,17 @@
-@version:3.35
+@version: 4.12
+@include "scl.conf"
 
 #
 # options
 #
-options { suppress(60); chain_hostnames(off); flush_lines(0); threaded(yes); use-fqdn(no); stats-freq(0); };
+options { suppress(60); chain-hostnames(no); flush-lines(0); threaded(yes); use-fqdn(no); stats(freq(0)); };
 
 #
 # sources
 #
 source src { unix-dgram("/var/run/log");
              unix-dgram("/var/run/logpriv" perm(0600));
-	     udp(ip("127.0.0.1") localport(1031)); internal(); file("/dev/klog"); };
+             network(ip("127.0.0.1") port(1031) transport("udp")); internal(); file("/dev/klog"); };
 
 #
 # destinations
@@ -37,7 +38,7 @@ destination allusers { usertty("*"); };
 destination mdns { file("/var/log/mdns.log"); };
 destination nginx_access { file("/tmp/nginx-access.log"); };
 destination nginx_error { file("/var/log/nginx/error.log"); };
-#destination loghost { udp("loghost" port(514)); };
+#destination loghost { network("loghost" port(514) transport("udp")); };
 
 #
 # log facility filters
